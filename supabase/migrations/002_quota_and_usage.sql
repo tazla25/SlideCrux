@@ -90,7 +90,7 @@ BEGIN
   PERFORM cron.schedule(
     'reset-quotas',
     '10 0 * * *',
-    $$SELECT public.reset_monthly_quotas()$$
+    'SELECT public.reset_monthly_quotas()'
   );
 EXCEPTION WHEN OTHERS THEN
   RAISE NOTICE 'pg_cron not available — skip scheduling reset_monthly_quotas. Set up manually in production.';
