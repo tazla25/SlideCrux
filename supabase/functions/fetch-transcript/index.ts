@@ -7,15 +7,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+ jules-14945097219006928304-5b27fd06
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+
+function decodeHtmlEntities(text: string): string {
+  return text
+=======
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 function decodeHtmlEntities(str: string): string {
   return str
+ main
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+ jules-14945097219006928304-5b27fd06
+    .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+=======
     .replace(/&apos;/g, "'")
     .replace(/&#x2F;/g, '/')
     .replace(/&nbsp;/g, ' ')
@@ -27,14 +37,20 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&mdash;/g, '—')
     .replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(Number(dec)))
     .replace(/&#x([0-9a-f]+);/gi, (_match, hex) => String.fromCharCode(parseInt(hex, 16)));
+main
 }
 
 function extractYtInitialPlayerResponse(html: string): any {
   const patterns = [
+    jules-14945097219006928304-5b27fd06
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|<\/script|\n)/,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/
+=======
     /ytInitialPlayerResponse\s*=\s*({.+?});/s,
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/s,
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*\n/s,
     /["']ytInitialPlayerResponse["']\s*:\s*({.+?})\s*(?:,|})/s
+ main
   ];
   for (const pattern of patterns) {
     const match = html.match(pattern);
@@ -170,6 +186,15 @@ serve(async (req) => {
       }
     )
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
+    })
+
     // Fetch deck
     const { data: deck, error: deckError } = await supabaseClient
       .from('decks')
@@ -188,10 +213,14 @@ serve(async (req) => {
     }
 
     // Set status to transcribing
-    await supabaseClient
+    const { error: transcribingError } = await supabaseAdmin
       .from('decks')
       .update({ status: 'transcribing' })
       .eq('id', deck_id)
+
+    if (transcribingError) {
+      throw new Error(`Failed to update deck status to transcribing: ${transcribingError.message}`)
+    }
 
     let transcript = ""
 
@@ -237,7 +266,7 @@ serve(async (req) => {
     }
 
     // Update deck with transcript
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabaseAdmin
       .from('decks')
       .update({ 
         transcript,
@@ -246,7 +275,7 @@ serve(async (req) => {
       .eq('id', deck_id)
 
     if (updateError) {
-      throw updateError
+      throw new Error(`Failed to update deck transcript: ${updateError.message}`)
     }
 
     return new Response(JSON.stringify({ success: true, transcript_length: transcript.length }), {
@@ -256,11 +285,23 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("Error:", error.message)
-    if (deck_id && supabaseClient) {
-       await supabaseClient
-        .from('decks')
-        .update({ status: 'failed', error: error.message })
-        .eq('id', deck_id)
+    if (deck_id) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+        const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          }
+        })
+        await supabaseAdmin
+          .from('decks')
+          .update({ status: 'failed', error: error.message })
+          .eq('id', deck_id)
+      } catch (dbErr) {
+        console.error("Failed to update status to failed:", dbErr)
+      }
     }
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
