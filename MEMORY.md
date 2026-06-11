@@ -2,7 +2,7 @@
 
 ## Last Session
 - **Date:** June 11, 2026
-- **Status:** Resolved YouTube transcript fetching issue. The direct timedtext scraper was failing due to YouTube's PO (Proof of Origin) token verification requirement (`exp=xpe`). Implemented a hybrid transcript fetching strategy that tries the fast and robust `youtube-transcript.ai` API first and falls back to a cookie-bypass native scraper. Updated both `fetch-transcript` and `generate-deck` edge functions.
+- **Status:** Resolved YouTube transcript fetching issue. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML error/landing page for videos without captions, which was incorrectly treated as a successful fetch. Implemented a validation check (`rawText.indexOf("## Transcript") === -1`) to force a clean failure/fallback. Sync'd this validation logic across both `fetch-transcript` and `generate-deck` edge functions, and added `generate-deck` to the GitHub Actions deployment workflow.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
