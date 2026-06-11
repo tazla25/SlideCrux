@@ -871,7 +871,7 @@ export default function DeckEditor() {
         </div>
 
         {/* Right Pane: Editor Form */}
-        <div className={`editor-right-pane ${mobileTab === 'preview' ? 'hidden-mobile' : ''}`}>
+        <div className={`editor-right-pane ${mobileTab === 'edit' ? 'active' : ''}`}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)' }}>
             <h2 className="editor-pane-title">Slide Editor</h2>
             {/* Mobile close button to go back to preview */}

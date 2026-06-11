@@ -29,7 +29,7 @@ ${JSON.stringify(jsonSchema, null, 2)}
 Ensure that you return ONLY a valid JSON object. Do not include markdown code block formatting (e.g., do not wrap the JSON in \`\`\`json ... \`\`\`).`;
 
   const requestBody = JSON.stringify({
-    model: "openai/gpt-4o-mini",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     messages: [
       {
         role: "system",

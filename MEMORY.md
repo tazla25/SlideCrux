@@ -32,7 +32,7 @@
 ## Active Context & Schema
 - Profiles: plan tier (free/pro/team), decks_this_month, monthly_reset_at.
 - Usage log: per-deck token + cost tracking.
-- OpenRouter: gpt-4o-mini with structured JSON output + retry + timeout.
+- OpenRouter: nvidia/nemotron-3-ultra-550b-a55b:free with structured JSON output + retry + timeout.
 - Authentication: Magic Link + Google OAuth (Supabase Auth).
 - Subscriptions: Lemon Squeezy Webhooks managed by Supabase Edge Functions.
 - Tech Stack: Vite + React 19, Supabase (PostgreSQL + Edge Functions), Vercel.

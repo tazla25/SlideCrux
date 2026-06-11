@@ -39,10 +39,10 @@ const PLAN_DECK_LIMITS: Record<string, number> = {
   team: 200,
 };
 
-// --- Cost estimation (gpt-4o-mini via OpenRouter) ---
-// $0.15 per 1M input tokens, $0.60 per 1M output tokens
-const COST_PER_INPUT_TOKEN_MICROS = 0.15;  // micros per token
-const COST_PER_OUTPUT_TOKEN_MICROS = 0.60;
+// --- Cost estimation (nvidia/nemotron-3-ultra-550b-a55b:free via OpenRouter) ---
+// Free model, cost is 0
+const COST_PER_INPUT_TOKEN_MICROS = 0;  // micros per token
+const COST_PER_OUTPUT_TOKEN_MICROS = 0;
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
