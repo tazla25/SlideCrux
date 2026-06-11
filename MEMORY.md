@@ -1,8 +1,8 @@
 # SlideCrux Project Memory
 
 ## Last Session
-- **Date:** June 10, 2026
-- **Status:** Session Ended. Phase 5 (Growth, Admin, & Pre-Exit Polish) is 100% COMPLETE. The project is feature-complete and ready for acquisition listing on Acquire.com. `08-Deployment_Guide.md` updated with final configs.
+- **Date:** June 11, 2026
+- **Status:** Resolved YouTube transcript fetching issue. The direct timedtext scraper was failing due to YouTube's PO (Proof of Origin) token verification requirement (`exp=xpe`). Implemented a hybrid transcript fetching strategy that tries the fast and robust `youtube-transcript.ai` API first and falls back to a cookie-bypass native scraper. Updated both `fetch-transcript` and `generate-deck` edge functions.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
