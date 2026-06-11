@@ -153,13 +153,39 @@ function extractYtInitialPlayerResponse(html: string): any {
 }
 
 async function fetchYoutubeTranscript(videoId: string): Promise<string> {
-  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  // Strategy 1: Try youtube-transcript.ai API first (robust, handles PO token)
+  try {
+    const url = `https://youtube-transcript.ai/transcript/${videoId}.txt`;
+    console.log(`Attempting to fetch transcript from: ${url}`);
+    const response = await fetch(url);
+    if (response.ok) {
+      const rawText = await response.text();
+      const index = rawText.indexOf("## Transcript");
+      let content = index !== -1 ? rawText.slice(index + 13) : rawText;
+      content = content.replace(/\[\d+(?::\d+){0,2}\]/g, "");
+      const cleaned = content.replace(/\s+/g, ' ').trim();
+      if (cleaned.length > 0) {
+        console.log("Successfully retrieved transcript from youtube-transcript.ai");
+        return cleaned;
+      }
+    } else {
+      console.warn(`youtube-transcript.ai returned HTTP ${response.status}`);
+    }
+  } catch (err: any) {
+    console.warn(`youtube-transcript.ai failed: ${err.message}`);
+  }
+
+  // Strategy 2: Fall back to native scraper with consent bypass cookies
+  console.log("Falling back to native scraper...");
+  const url = `https://www.youtube.com/watch?v=${videoId}&bpctr=9999999999&has_verified=1&hl=en`;
   const response = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,
-      "Accept-Language": "en-US,en;q=0.9"
+      "Accept-Language": "en-US,en;q=0.9",
+      "Cookie": "SOCS=CAESEwgDEgk0ODE3NzkzOTQaAnBsIAEaBgiA_5mYBg; CONSENT=YES+cb.20210328-17-p0.en+FX+999"
     }
   });
+
   if (!response.ok) {
     throw new Error(`Failed to fetch YouTube page: HTTP ${response.status}`);
   }
@@ -191,7 +217,12 @@ async function fetchYoutubeTranscript(videoId: string): Promise<string> {
     throw new Error("Invalid caption track domain (potential SSRF)");
   }
 
-  const xmlRes = await fetch(baseUrl);
+  const xmlRes = await fetch(baseUrl, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      "Cookie": "SOCS=CAESEwgDEgk0ODE3NzkzOTQaAnBsIAEaBgiA_5mYBg; CONSENT=YES+cb.20210328-17-p0.en+FX+999"
+    }
+  });
   if (!xmlRes.ok) {
     throw new Error(`Failed to fetch XML captions: HTTP ${xmlRes.status}`);
   }
