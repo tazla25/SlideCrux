@@ -1,33 +1,28 @@
-// React import removed for compatibility
-
-// 1. Move BulletIcon component outside to prevent unmount/remount on each render
 const BulletIcon = () => (
-  <svg 
-    className="bullet-icon" 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    style={{ width: '0.8em', height: '0.8em', display: 'inline-block' }}
+  <svg
+    className="bullet-diamond"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    style={{ width: '0.75em', height: '0.75em', display: 'inline-block', flexShrink: 0 }}
   >
     <rect x="6" y="6" width="12" height="12" rx="2" transform="rotate(45 12 12)" />
   </svg>
 );
 
-// 2. Move getContrastColors outside component and make it robust to edge cases
 const getContrastColors = (bgColor) => {
   if (!bgColor) {
     return {
-      textPrimary: 'var(--color-text-primary)',
-      textSecondary: 'var(--color-text-secondary)'
+      textPrimary: 'var(--text-primary)',
+      textSecondary: 'var(--text-secondary)'
     };
   }
 
   const cleanColor = bgColor.trim().toLowerCase();
 
-  // Handle CSS variables
   if (cleanColor.startsWith('var(')) {
     if (
-      cleanColor.includes('bg-secondary') || 
-      cleanColor.includes('bg-primary') || 
+      cleanColor.includes('bg-secondary') ||
+      cleanColor.includes('bg-primary') ||
       cleanColor.includes('dark') ||
       cleanColor.includes('brand')
     ) {
@@ -43,12 +38,11 @@ const getContrastColors = (bgColor) => {
       };
     }
     return {
-      textPrimary: 'var(--color-text-primary)',
-      textSecondary: 'var(--color-text-secondary)'
+      textPrimary: 'var(--text-primary)',
+      textSecondary: 'var(--text-secondary)'
     };
   }
 
-  // Common CSS named colors mapping to resolve light background contrast
   const namedColors = {
     white: '#ffffff',
     yellow: '#ffff00',
@@ -112,8 +106,7 @@ const getContrastColors = (bgColor) => {
       const h = parseFloat(match[0]);
       const s = parseFloat(match[1]) / 100;
       const l = parseFloat(match[2]) / 100;
-      
-      // HSL to RGB conversion
+
       const c = (1 - Math.abs(2 * l - 1)) * s;
       const x = c * (1 - Math.abs((h / 60) % 2 - 1));
       const m = l - c / 2;
@@ -154,7 +147,6 @@ const getContrastColors = (bgColor) => {
 };
 
 export default function SlideRenderer({ slide, brandKit, showWatermark = false, className = '' }) {
-  // Parse bullets safely including single-string JSON values
   let bulletList = [];
   if (Array.isArray(slide?.bullets)) {
     bulletList = slide.bullets;
@@ -173,12 +165,11 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
 
   const contrast = getContrastColors(brandKit?.primary_color);
 
-  // Set local CSS variables for the slide container
   const slideStyles = {
-    '--slide-bg': brandKit?.primary_color || 'var(--color-bg-secondary)',
-    '--slide-primary': brandKit?.secondary_color || 'var(--color-brand)',
-    '--slide-accent': brandKit?.accent_color || 'var(--color-accent)',
-    '--slide-font': brandKit?.font_family || 'var(--font-family)',
+    '--slide-bg': brandKit?.primary_color || 'var(--bg-secondary)',
+    '--slide-primary': brandKit?.secondary_color || 'var(--brand-500)',
+    '--slide-accent': brandKit?.accent_color || 'var(--accent-500)',
+    '--slide-font': brandKit?.font_family || 'var(--font-sans)',
     '--slide-text-primary': contrast.textPrimary,
     '--slide-text-secondary': contrast.textSecondary,
   };
@@ -190,9 +181,9 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
       case 'title':
         return (
           <div className="slide-layout-title">
-            <div className="slide-title-eyebrow">Key Highlight</div>
+            <div className="slide-eyebrow">Key Highlight</div>
             <h1>{slide?.heading || 'Slide Title'}</h1>
-            <div className="slide-title-divider" />
+            <div className="slide-title-line" />
             {bulletList.length > 0 && (
               <p className="slide-subtitle">
                 {bulletList.join(' ')}
@@ -204,16 +195,16 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
         const citation = bulletList[0] || '';
         return (
           <div className="slide-layout-quote">
-            <span className="quote-mark">“</span>
+            <span className="quote-mark">&ldquo;</span>
             <blockquote>{slide?.heading || 'Quote goes here...'}</blockquote>
-            {citation && <div className="quote-citation">{citation}</div>}
+            {citation && <div className="quote-cite">{citation}</div>}
           </div>
         );
       }
       case 'image_right':
         return (
-          <div className="slide-layout-image-right">
-            <div className="slide-left-pane">
+          <div className="slide-layout-split">
+            <div className="slide-split-left">
               <h2>{slide?.heading || 'Visual Section'}</h2>
               <ul>
                 {bulletList.map((bullet, idx) => (
@@ -224,39 +215,40 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
                 ))}
               </ul>
             </div>
-            <div className="slide-right-pane">
+            <div className="slide-split-right">
               {slide?.image_url ? (
-                <img 
-                  src={slide.image_url} 
-                  alt={slide?.heading || 'Slide Visual'} 
-                  className="slide-image" 
+                <img
+                  src={slide.image_url}
+                  alt={slide?.heading || 'Slide Visual'}
                 />
               ) : (
-                <div className="slide-image-mockup">
-                  <div className="mockup-glass-card">
-                    <div className="mockup-header">
-                      <span className="mockup-dot"></span>
-                      <span className="mockup-dot"></span>
-                      <span className="mockup-dot"></span>
+                <div className="slide-mockup">
+                  <div className="mockup-card">
+                    <div className="mockup-bar-dots">
+                      <span className="mockup-bar-dot" />
+                      <span className="mockup-bar-dot" />
+                      <span className="mockup-bar-dot" />
                     </div>
-                    <div className="mockup-body">
-                      <svg 
-                        className="mockup-icon" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor" 
+                    <div className="mockup-body-center">
+                      <svg
+                        width="5cqw"
+                        height="5cqw"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                         strokeWidth="1.5"
+                        style={{ color: 'var(--slide-primary, var(--brand-500))', opacity: 0.7 }}
                       >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 0 11-.75 0 .375 0 01.75 0z" 
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                         />
                       </svg>
                       {slide?.image_prompt ? (
-                        <p className="mockup-prompt">{slide.image_prompt}</p>
+                        <p className="mockup-prompt-text">{slide.image_prompt}</p>
                       ) : (
-                        <p className="mockup-prompt">AI Generated Visual Mockup</p>
+                        <p className="mockup-prompt-text">AI Generated Visual Mockup</p>
                       )}
                     </div>
                   </div>
@@ -268,10 +260,10 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
       case 'section':
         return (
           <div className="slide-layout-section">
-            <div className="slide-layout-section-content">
-              <div className="section-eyebrow">Section Break</div>
+            <div className="slide-section-content">
+              <div className="slide-section-eyebrow">Section Break</div>
               <h2>{slide?.heading || 'Next Chapter'}</h2>
-              <div className="section-divider" />
+              <div className="slide-section-line" />
             </div>
           </div>
         );
@@ -294,15 +286,15 @@ export default function SlideRenderer({ slide, brandKit, showWatermark = false, 
   };
 
   return (
-    <div className={`slide-outer-container ${className}`}>
-      <div 
-        className="slide-wrapper" 
+    <div className={`slide-outer ${className}`}>
+      <div
+        className="slide-frame"
         style={slideStyles}
       >
-        <div className="slide-content">
+        <div style={{ flex: 1, position: 'relative' }}>
           {renderContent()}
         </div>
-        
+
         {showWatermark && (
           <div className="slide-watermark">
             <span className="slide-watermark-dot" />

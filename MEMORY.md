@@ -1,8 +1,8 @@
 # SlideCrux Project Memory
 
 ## Last Session
-- **Date:** June 10, 2026
-- **Status:** Session Ended. Phase 5 (Growth, Admin, & Pre-Exit Polish) is 100% COMPLETE. The project is feature-complete and ready for acquisition listing on Acquire.com. `08-Deployment_Guide.md` updated with final configs.
+- **Date:** June 11, 2026
+- **Status:** Resolved YouTube transcript fetching issue and brand kits creation error. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML page for videos without captions, forcing a validation check (`rawText.indexOf("## Transcript") === -1`). Fixed a column mismatch error in `brand_kits` table by renaming `color_primary`, `color_secondary`, and `color_accent` to match the React app fields (`primary_color`, `secondary_color`, `accent_color`) via a new migration `004_rename_brand_kit_colors.sql`. Added `generate-deck` to GitHub Actions deployment workflow.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
@@ -32,7 +32,7 @@
 ## Active Context & Schema
 - Profiles: plan tier (free/pro/team), decks_this_month, monthly_reset_at.
 - Usage log: per-deck token + cost tracking.
-- OpenRouter: gpt-4o-mini with structured JSON output + retry + timeout.
+- OpenRouter: nvidia/nemotron-3-ultra-550b-a55b:free with structured JSON output + retry + timeout.
 - Authentication: Magic Link + Google OAuth (Supabase Auth).
 - Subscriptions: Lemon Squeezy Webhooks managed by Supabase Edge Functions.
 - Tech Stack: Vite + React 19, Supabase (PostgreSQL + Edge Functions), Vercel.

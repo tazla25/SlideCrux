@@ -3,19 +3,72 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const SOURCE_ICONS = {
-  youtube: '🎬',
-  loom: '🎥',
-  upload: '📁',
-  paste: '📋',
-  meet: '💻',
+  youtube: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  ),
+  loom: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+    </svg>
+  ),
+  upload: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  ),
+  paste: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    </svg>
+  ),
+  meet: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 10l5-5" />
+      <path d="M20 5l-5 5" />
+      <path d="M15 14l5 5" />
+      <path d="M20 19l-5-5" />
+      <rect x="2" y="6" width="12" height="12" rx="2" />
+    </svg>
+  ),
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
-  transcribing: { label: 'Transcribing', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
-  generating: { label: 'Generating', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
-  ready: { label: 'Ready', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-  failed: { label: 'Failed', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },
+  pending: {
+    label: 'Pending',
+    className: 'status-dot-pending',
+    bg: 'var(--warning-bg)',
+    color: 'var(--warning)'
+  },
+  transcribing: {
+    label: 'Transcribing',
+    className: 'status-dot-transcribing',
+    bg: 'rgba(167, 139, 250, 0.12)',
+    color: '#a78bfa'
+  },
+  generating: {
+    label: 'Generating',
+    className: 'status-dot-generating',
+    bg: 'rgba(96, 165, 250, 0.12)',
+    color: 'var(--info)'
+  },
+  ready: {
+    label: 'Ready',
+    className: 'status-dot-ready',
+    bg: 'var(--success-bg)',
+    color: 'var(--success)'
+  },
+  failed: {
+    label: 'Failed',
+    className: 'status-dot-failed',
+    bg: 'var(--error-bg)',
+    color: 'var(--error)'
+  },
 }
 
 const PLAN_LIMITS = { free: 1, pro: 30, team: 200 }
@@ -102,22 +155,27 @@ export default function Dashboard({ session }) {
 
   if (loading) {
     return (
-      <div className="dashboard-container">
+      <div className="page-container">
         <header className="dashboard-header">
-          <div className="dashboard-title">
-            <div className="skeleton-loading skeleton-text title"></div>
-            <div className="skeleton-loading skeleton-text short"></div>
+          <div>
+            <div className="skeleton" style={{ width: 280, height: 36, marginBottom: 8 }} />
+            <div className="skeleton" style={{ width: 160, height: 18 }} />
           </div>
-          <div className="skeleton-loading" style={{ width: '120px', height: '40px', borderRadius: 'var(--radius-md)' }}></div>
+          <div className="skeleton" style={{ width: 130, height: 40, borderRadius: 'var(--radius-md)' }} />
         </header>
-        <div className="dash-stats-bar">
+
+        <div className="stats-bar">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="dash-stat-item skeleton-loading" style={{ height: '60px' }}></div>
+            <div key={i} className="stat-card">
+              <div className="skeleton" style={{ width: 50, height: 36 }} />
+              <div className="skeleton" style={{ width: 80, height: 14 }} />
+            </div>
           ))}
         </div>
-        <div className="dash-deck-list">
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {[1, 2, 3].map(i => (
-            <div key={i} className="dash-deck-card skeleton-loading" style={{ height: '80px', border: 'none' }}></div>
+            <div key={i} className="skeleton" style={{ height: 76, borderRadius: 'var(--radius-lg)' }} />
           ))}
         </div>
       </div>
@@ -125,101 +183,125 @@ export default function Dashboard({ session }) {
   }
 
   return (
-    <div className="dashboard-container">
+    <div className="page-container">
       {/* Header */}
       <header className="dashboard-header">
-        <div className="dashboard-title">
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+        <div>
+          <h1>
             Welcome back, {fullName.split(' ')[0]}!
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-            Your SlideCrux workspace
-          </p>
+          <p>Your SlideCrux workspace</p>
         </div>
-        <Link to="/new-deck" className="btn btn-primary" style={{ gap: '0.5rem' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <Link to="/new-deck" className="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
           New Deck
         </Link>
       </header>
 
       {/* Stats Bar */}
-      <div className="dash-stats-bar">
-        <div className="dash-stat-item">
-          <span className="dash-stat-value">{totalDecks}</span>
-          <span className="dash-stat-label">Total Decks</span>
+      <div className="stats-bar">
+        <div className="stat-card">
+          <span className="stat-value">{totalDecks}</span>
+          <span className="stat-label">Total Decks</span>
         </div>
-        <div className="dash-stat-item">
-          <span className="dash-stat-value">{readyDecks}</span>
-          <span className="dash-stat-label">Ready</span>
+        <div className="stat-card">
+          <span className="stat-value" style={{ color: 'var(--success)' }}>{readyDecks}</span>
+          <span className="stat-label">Ready</span>
         </div>
-        <div className="dash-stat-item">
-          <span className="dash-stat-value">{decksThisMonth}/{planLimit}</span>
-          <span className="dash-stat-label">This Month</span>
+        <div className="stat-card">
+          <span className="stat-value">{decksThisMonth}<span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-lg)' }}>/{planLimit}</span></span>
+          <span className="stat-label">This Month</span>
         </div>
-        <div className="dash-stat-item">
-          <span className="dash-stat-badge" data-plan={plan}>
-            {plan.charAt(0).toUpperCase() + plan.slice(1)}
+        <div className="stat-card">
+          <span>
+            <span className={`plan-badge ${plan === 'pro' ? 'plan-badge-pro' : plan === 'team' ? 'plan-badge-team' : 'plan-badge-free'}`}>
+              {plan.charAt(0).toUpperCase() + plan.slice(1)}
+            </span>
           </span>
-          <span className="dash-stat-label">Plan</span>
+          <span className="stat-label">Plan</span>
         </div>
       </div>
 
       {/* Deck List */}
       {decks.length === 0 ? (
-        <div className="dash-empty-state">
-          <div className="dash-empty-icon">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8"/><path d="M12 17v4"/>
-              <path d="M7 8h4"/><path d="M7 11h6"/>
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8" />
+              <path d="M12 17v4" />
+              <path d="M7 8h4" />
+              <path d="M7 11h6" />
             </svg>
           </div>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>No decks yet</h3>
-          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem', maxWidth: '360px' }}>
+          <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>No decks yet</h3>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 360 }}>
             Paste a YouTube or Loom URL and let AI create a stunning presentation for you in seconds.
           </p>
           <Link to="/new-deck" className="btn btn-primary">
-            Create Your First Deck ⚡
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Create Your First Deck
           </Link>
         </div>
       ) : (
-        <div className="dash-deck-list">
+        <div className="decks-grid">
           {decks.map(deck => {
             const status = STATUS_CONFIG[deck.status] || STATUS_CONFIG.pending
-            const icon = SOURCE_ICONS[deck.source_type] || '📄'
+            const icon = SOURCE_ICONS[deck.source_type] || SOURCE_ICONS.paste
+            const isReady = deck.status === 'ready'
+
             return (
               <div
                 key={deck.id}
-                className="dash-deck-card"
-                onClick={() => deck.status === 'ready' ? navigate(`/deck/${deck.id}`) : null}
-                style={{ cursor: deck.status === 'ready' ? 'pointer' : 'default' }}
+                className="deck-card"
+                onClick={() => isReady ? navigate(`/deck/${deck.id}`) : null}
+                style={{ cursor: isReady ? 'pointer' : 'default' }}
               >
-                <div className="dash-deck-left">
-                  <span className="dash-deck-source-icon">{icon}</span>
-                  <div className="dash-deck-info">
-                    <h3 className="dash-deck-title">
-                      {deck.title || 'Untitled Deck'}
-                    </h3>
-                    <div className="dash-deck-meta">
-                      <span
-                        className="dash-deck-status"
-                        style={{ color: status.color, backgroundColor: status.bg }}
-                      >
-                        {status.label}
+                <div className="deck-card-source" style={{ color: status.color }}>
+                  {icon}
+                </div>
+
+                <div className="deck-card-body">
+                  <div className="deck-card-title">
+                    {deck.title || 'Untitled Deck'}
+                  </div>
+                  <div className="deck-card-meta">
+                    <span className="status-badge" style={{ background: status.bg, color: status.color }}>
+                      <span className={`status-dot ${status.className}`} />
+                      {status.label}
+                    </span>
+                    {deck.slide_count > 0 && (
+                      <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', fontWeight: 500 }}>
+                        {deck.slide_count} slides
                       </span>
-                      {deck.slide_count > 0 && (
-                        <span className="dash-deck-slides">{deck.slide_count} slides</span>
-                      )}
-                      <span className="dash-deck-time">{timeAgo(deck.created_at)}</span>
-                    </div>
+                    )}
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>
+                      {timeAgo(deck.created_at)}
+                    </span>
                     {deck.status === 'failed' && deck.error && (
-                      <p className="dash-deck-error">{deck.error}</p>
+                      <span style={{ color: 'var(--error)', fontSize: 'var(--text-xs)' }}>
+                        {deck.error}
+                      </span>
                     )}
                   </div>
                 </div>
-                <div className="dash-deck-actions" onClick={e => e.stopPropagation()}>
-                  {deck.status === 'ready' && (
-                    <Link to={`/deck/${deck.id}`} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+
+                <div className="deck-card-actions" onClick={e => e.stopPropagation()}>
+                  {isReady && (
+                    <Link
+                      to={`/deck/${deck.id}`}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
                       Edit
                     </Link>
                   )}
@@ -228,18 +310,26 @@ export default function Dashboard({ session }) {
                       href={`/d/${deck.public_slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                      className="btn btn-ghost btn-icon-sm"
+                      title="View public link"
                     >
-                      View
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
                     </a>
                   )}
                   <button
-                    className="btn btn-danger"
-                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                    className="btn btn-ghost btn-icon-sm"
                     onClick={() => setDeleteModal(deck)}
+                    title="Delete deck"
+                    style={{ color: 'var(--error)' }}
                   >
-                    Delete
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -249,39 +339,74 @@ export default function Dashboard({ session }) {
       )}
 
       {/* Quick Links */}
-      <div className="dash-quick-links">
-        <Link to="/brand-kits" className="dash-quick-card">
-          <span style={{ fontSize: '1.5rem' }}>🎨</span>
+      <div className="quick-links">
+        <Link to="/brand-kits" className="quick-link-card">
+          <div className="quick-link-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="13.5" cy="6.5" r="2.5" />
+              <path d="M13.5 9.5c-2.5 0-4.5 1.5-4.5 3.5v2h9v-2c0-2-2-3.5-4.5-3.5z" />
+              <path d="M2 21l2-7h4l2 7" />
+              <path d="M5 14v-2a2 2 0 0 1 2-2" />
+            </svg>
+          </div>
           <div>
-            <h4>Brand Kits</h4>
-            <p>Custom colors, logos & fonts</p>
+            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Brand Kits</h4>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Custom colors, logos & fonts</p>
           </div>
         </Link>
-        <Link to="/pricing" className="dash-quick-card">
-          <span style={{ fontSize: '1.5rem' }}>⚡</span>
+
+        <Link to="/pricing" className="quick-link-card">
+          <div className="quick-link-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          </div>
           <div>
-            <h4>Upgrade Plan</h4>
-            <p>{plan === 'free' ? 'Unlock more decks & exports' : 'Manage subscription'}</p>
+            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Upgrade Plan</h4>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+              {plan === 'free' ? 'Unlock more decks & exports' : 'Manage subscription'}
+            </p>
           </div>
         </Link>
-        <Link to="/settings" className="dash-quick-card">
-          <span style={{ fontSize: '1.5rem' }}>⚙️</span>
+
+        <Link to="/settings" className="quick-link-card">
+          <div className="quick-link-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </div>
           <div>
-            <h4>Settings</h4>
-            <p>Account & preferences</p>
+            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Settings</h4>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Account & preferences</p>
           </div>
         </Link>
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModal && (
-        <div className="dash-modal-overlay" onClick={() => !deleting && setDeleteModal(null)}>
-          <div className="dash-modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Delete Deck?</h3>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Are you sure you want to delete <strong>"{deleteModal.title || 'Untitled Deck'}"</strong>? This will permanently remove all slides and cannot be undone.
+        <div className="modal-overlay" onClick={() => !deleting && setDeleteModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'var(--error-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-4)'
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2" strokeLinecap="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </div>
+            <h3>Delete Deck?</h3>
+            <p>
+              Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>"{deleteModal.title || 'Untitled Deck'}"</strong>? This will permanently remove all slides and cannot be undone.
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div className="modal-actions">
               <button
                 className="btn btn-secondary"
                 onClick={() => setDeleteModal(null)}
@@ -294,7 +419,14 @@ export default function Dashboard({ session }) {
                 onClick={handleDelete}
                 disabled={deleting}
               >
-                {deleting ? 'Deleting...' : 'Delete'}
+                {deleting ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                      <path d="M21 12a9 9 0 1 1-6.22-8.56" />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : 'Delete'}
               </button>
             </div>
           </div>

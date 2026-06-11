@@ -1,3 +1,4 @@
+// Deploy trigger: 2026-06-11
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
@@ -6,22 +7,50 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+ jules-14945097219006928304-5b27fd06
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
 
 function decodeHtmlEntities(text: string): string {
   return text
+=======
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function decodeHtmlEntities(str: string): string {
+  return str
+ main
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+ jules-14945097219006928304-5b27fd06
     .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+=======
+    .replace(/&apos;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&ndash;/g, '-')
+    .replace(/&mdash;/g, '—')
+    .replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex) => String.fromCharCode(parseInt(hex, 16)));
+main
 }
 
 function extractYtInitialPlayerResponse(html: string): any {
   const patterns = [
+    jules-14945097219006928304-5b27fd06
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|<\/script|\n)/,
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/
+=======
+    /ytInitialPlayerResponse\s*=\s*({.+?});/s,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/s,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*\n/s,
+    /["']ytInitialPlayerResponse["']\s*:\s*({.+?})\s*(?:,|})/s
+ main
   ];
   for (const pattern of patterns) {
     const match = html.match(pattern);

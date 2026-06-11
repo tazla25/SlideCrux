@@ -44,9 +44,9 @@ create table public.brand_kits (
   owner_id uuid not null references auth.users(id) on delete cascade,
   name text not null default 'Default',
   logo_url text,
-  color_primary text not null default '#0F172A' constraint brand_kits_color_primary_check check (color_primary ~ '^#[0-9a-fA-F]{3,8}$'),
-  color_secondary text not null default '#3B82F6' constraint brand_kits_color_secondary_check check (color_secondary ~ '^#[0-9a-fA-F]{3,8}$'),
-  color_accent text not null default '#F59E0B' constraint brand_kits_color_accent_check check (color_accent ~ '^#[0-9a-fA-F]{3,8}$'),
+  primary_color text not null default '#0F172A' constraint brand_kits_primary_color_check check (primary_color ~ '^#[0-9a-fA-F]{3,8}$'),
+  secondary_color text not null default '#3B82F6' constraint brand_kits_secondary_color_check check (secondary_color ~ '^#[0-9a-fA-F]{3,8}$'),
+  accent_color text not null default '#F59E0B' constraint brand_kits_accent_color_check check (accent_color ~ '^#[0-9a-fA-F]{3,8}$'),
   font_family text not null default 'Inter',
   created_at timestamptz not null default now()
 );
