@@ -2,7 +2,7 @@
 
 ## Last Session
 - **Date:** June 11, 2026
-- **Status:** Resolved YouTube transcript fetching issue. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML error/landing page for videos without captions, which was incorrectly treated as a successful fetch. Implemented a validation check (`rawText.indexOf("## Transcript") === -1`) to force a clean failure/fallback. Sync'd this validation logic across both `fetch-transcript` and `generate-deck` edge functions, and added `generate-deck` to the GitHub Actions deployment workflow.
+- **Status:** Resolved YouTube transcript fetching issue and brand kits creation error. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML page for videos without captions, forcing a validation check (`rawText.indexOf("## Transcript") === -1`). Fixed a column mismatch error in `brand_kits` table by renaming `color_primary`, `color_secondary`, and `color_accent` to match the React app fields (`primary_color`, `secondary_color`, `accent_color`) via a new migration `004_rename_brand_kit_colors.sql`. Added `generate-deck` to GitHub Actions deployment workflow.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
