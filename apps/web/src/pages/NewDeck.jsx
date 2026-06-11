@@ -178,11 +178,21 @@ function NewDeck() {
             console.error("Edge function invocation error:", error)
             let errorMsg = error.message || "Failed to trigger AI generation."
             try {
-              const parsed = typeof error.context === 'string' ? JSON.parse(error.context) : error.context
-              if (parsed?.code === 'QUOTA_EXCEEDED') {
-                errorMsg = parsed.error + " Go to Pricing to upgrade your plan."
-              } else if (parsed?.error) {
-                errorMsg = parsed.error
+              let errorData = null;
+              if (error.context instanceof Response) {
+                 errorData = await error.context.json().catch(() => null);
+              } else if (typeof error.context === 'string') {
+                 errorData = JSON.parse(error.context);
+              } else {
+                 errorData = error.context;
+              }
+
+              if (errorData?.code === 'QUOTA_EXCEEDED') {
+                errorMsg = errorData.error + " Go to Pricing to upgrade your plan."
+              } else if (errorData?.error) {
+                errorMsg = errorData.error
+              } else if (error.context instanceof Response) {
+                errorMsg = "Server error " + error.context.status;
               }
             } catch (_) { }
             if (isMounted.current) {
