@@ -161,7 +161,10 @@ async function fetchYoutubeTranscript(videoId: string): Promise<string> {
     if (response.ok) {
       const rawText = await response.text();
       const index = rawText.indexOf("## Transcript");
-      let content = index !== -1 ? rawText.slice(index + 13) : rawText;
+      if (index === -1) {
+        throw new Error("No captions/subtitles available for this video");
+      }
+      let content = rawText.slice(index + 13);
       content = content.replace(/\[\d+(?::\d+){0,2}\]/g, "");
       const cleaned = content.replace(/\s+/g, ' ').trim();
       if (cleaned.length > 0) {
