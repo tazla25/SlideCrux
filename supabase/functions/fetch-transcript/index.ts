@@ -170,6 +170,15 @@ serve(async (req) => {
       }
     )
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
+    })
+
     // Fetch deck
     const { data: deck, error: deckError } = await supabaseClient
       .from('decks')
@@ -188,10 +197,14 @@ serve(async (req) => {
     }
 
     // Set status to transcribing
-    await supabaseClient
+    const { error: transcribingError } = await supabaseAdmin
       .from('decks')
       .update({ status: 'transcribing' })
       .eq('id', deck_id)
+
+    if (transcribingError) {
+      throw new Error(`Failed to update deck status to transcribing: ${transcribingError.message}`)
+    }
 
     let transcript = ""
 
@@ -237,7 +250,7 @@ serve(async (req) => {
     }
 
     // Update deck with transcript
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabaseAdmin
       .from('decks')
       .update({ 
         transcript,
@@ -246,7 +259,7 @@ serve(async (req) => {
       .eq('id', deck_id)
 
     if (updateError) {
-      throw updateError
+      throw new Error(`Failed to update deck transcript: ${updateError.message}`)
     }
 
     return new Response(JSON.stringify({ success: true, transcript_length: transcript.length }), {
@@ -256,11 +269,23 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("Error:", error.message)
-    if (deck_id && supabaseClient) {
-       await supabaseClient
-        .from('decks')
-        .update({ status: 'failed', error: error.message })
-        .eq('id', deck_id)
+    if (deck_id) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+        const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          }
+        })
+        await supabaseAdmin
+          .from('decks')
+          .update({ status: 'failed', error: error.message })
+          .eq('id', deck_id)
+      } catch (dbErr) {
+        console.error("Failed to update status to failed:", dbErr)
+      }
     }
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
