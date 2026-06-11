@@ -50,11 +50,12 @@ function extractYtInitialPlayerResponse(html: string): any {
 }
 
 async function fetchYoutubeTranscript(videoId: string): Promise<string> {
-  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  const url = `https://www.youtube.com/watch?v=${videoId}&bpctr=9999999999&has_verified=1&hl=en`;
   const response = await fetch(url, {
     headers: {
       "User-Agent": USER_AGENT,
-      "Accept-Language": "en-US,en;q=0.9"
+      "Accept-Language": "en-US,en;q=0.9",
+      "Cookie": "SOCS=CAESEwgDEgk0ODE3NzkzOTQaAnBsIAEaBgiA_5mYBg; CONSENT=YES+cb.20210328-17-p0.en+FX+999"
     }
   });
 
@@ -66,6 +67,9 @@ async function fetchYoutubeTranscript(videoId: string): Promise<string> {
   if (!playerResponse) {
     throw new Error("Could not parse ytInitialPlayerResponse. The video might be private, age-restricted, or YouTube changed its page format.");
   }
+
+  console.log("Playability Status:", JSON.stringify(playerResponse?.playabilityStatus));
+  console.log("Captions Object Exists:", !!playerResponse?.captions);
 
   const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
   if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
