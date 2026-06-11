@@ -28,8 +28,11 @@ You must return a JSON object that strictly adheres to this JSON Schema:
 ${JSON.stringify(jsonSchema, null, 2)}
 Ensure that you return ONLY a valid JSON object. Do not include markdown code block formatting (e.g., do not wrap the JSON in \`\`\`json ... \`\`\`).`;
 
+  const modelName = "nvidia/nemotron-3-ultra-550b-a55b:free";
+  const isFreeModel = modelName.endsWith(":free");
+
   const requestBody = JSON.stringify({
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    model: modelName,
     messages: [
       {
         role: "system",
@@ -37,9 +40,11 @@ Ensure that you return ONLY a valid JSON object. Do not include markdown code bl
       },
       { role: "user", content: prompt }
     ],
-    response_format: {
-      type: "json_object"
-    }
+    ...(isFreeModel ? {} : {
+      response_format: {
+        type: "json_object"
+      }
+    })
   });
 
   const headers = {
@@ -95,7 +100,13 @@ Ensure that you return ONLY a valid JSON object. Do not include markdown code bl
         total_tokens: data.usage?.total_tokens ?? 0,
       };
 
-      const content = data.choices[0].message.content.trim();
+      let content = data.choices[0].message.content.trim();
+      // Strip markdown code block wrappers if the model includes them
+      if (content.startsWith("```")) {
+        content = content.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+      content = content.trim();
+
       let parsed: any;
       try {
         parsed = JSON.parse(content);
