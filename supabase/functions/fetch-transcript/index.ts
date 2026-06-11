@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { YoutubeTranscript } from 'https://esm.sh/youtube-transcript@1.2.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,24 +64,16 @@ serve(async (req) => {
       }
       const videoId = videoIdMatch[1]
       
-      const response = await fetch(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch YouTube transcript")
+      try {
+        const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+        transcript = transcriptItems.map((item: any) => item.text).join(" ");
+      } catch (err: any) {
+        console.error("YoutubeTranscript Error:", err);
+        throw new Error("No captions found for this video: " + err.message);
       }
       
-      const text = await response.text();
-      if (!text) {
-          throw new Error("No English captions found for this video")
-      }
-      
-      const data = JSON.parse(text);
-      if (data.events) {
-        transcript = data.events
-          .filter((e: any) => e.segs)
-          .map((e: any) => e.segs.map((s: any) => s.utf8).join(""))
-          .join(" ")
-      } else {
-        throw new Error("No English captions found for this video")
+      if (!transcript || transcript.trim().length === 0) {
+        throw new Error("No captions found for this video")
       }
     } else if (source_type === 'loom') {
       const loomIdMatch = source_url.match(/share\/([^/?]+)/)

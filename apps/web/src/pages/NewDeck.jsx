@@ -9,15 +9,15 @@ function NewDeck() {
   const [sourceUrl, setSourceUrl] = useState('')
   const [transcriptText, setTranscriptText] = useState('')
   const [detectedSourceType, setDetectedSourceType] = useState(null)
-  
+
   const [brandKits, setBrandKits] = useState([])
   const [selectedBrandKitId, setSelectedBrandKitId] = useState('')
-  
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [errorMessage, setErrorMessage] = useState(null)
   const [deckStatus, setDeckStatus] = useState('pending')
-  
+
   const navigate = useNavigate()
   const pollingIntervalRef = useRef(null)
   const timeoutRef = useRef(null)
@@ -137,7 +137,6 @@ function NewDeck() {
         throw new Error("Please paste a transcript.")
       }
 
-      // Insert new row in decks
       const { data: newDeck, error: insertError } = await supabase
         .from('decks')
         .insert({
@@ -153,10 +152,9 @@ function NewDeck() {
         .single()
 
       if (insertError) throw insertError;
-      
+
       const newDeckId = newDeck.id;
 
-      // Invoke edge functions in the background
       (async () => {
         try {
           if (activeTab === 'url') {
@@ -164,12 +162,11 @@ function NewDeck() {
               body: { deck_id: newDeckId }
             })
             if (fetchErr) {
-              // Try to parse structured error from response
               let errorMsg = fetchErr.message || "Failed to extract transcript from video."
               try {
                 const parsed = typeof fetchErr.context === 'string' ? JSON.parse(fetchErr.context) : fetchErr.context
                 if (parsed?.error) errorMsg = parsed.error
-              } catch (_) {}
+              } catch (_) { }
               throw new Error(errorMsg)
             }
           }
@@ -179,7 +176,6 @@ function NewDeck() {
           })
           if (error) {
             console.error("Edge function invocation error:", error)
-            // Try to parse structured error from response
             let errorMsg = error.message || "Failed to trigger AI generation."
             try {
               const parsed = typeof error.context === 'string' ? JSON.parse(error.context) : error.context
@@ -188,9 +184,7 @@ function NewDeck() {
               } else if (parsed?.error) {
                 errorMsg = parsed.error
               }
-            } catch (_) {
-              // Use default error message
-            }
+            } catch (_) { }
             if (isMounted.current) {
               setDeckStatus(prev => {
                 if (prev !== 'ready') {
@@ -215,7 +209,6 @@ function NewDeck() {
         }
       })()
 
-      // Start polling database status
       startPolling(newDeckId)
 
     } catch (err) {
@@ -226,19 +219,33 @@ function NewDeck() {
     }
   }
 
+  // Processing overlay
   if (loading || deckStatus === 'failed') {
+    const steps = activeTab === 'url'
+      ? [
+        { key: 'pending', label: 'Initialize generation pipeline', num: 1 },
+        { key: 'transcribing', label: 'Transcribe video content', num: 2 },
+        { key: 'generating', label: 'Generate slides with AI', num: 3 },
+        { key: 'ready', label: 'Ready', num: 4 },
+      ]
+      : [
+        { key: 'pending', label: 'Initialize generation pipeline', num: 1 },
+        { key: 'generating', label: 'Generate slides with AI', num: 2 },
+        { key: 'ready', label: 'Ready', num: 3 },
+      ]
+
     return (
-      <div className="deck-processing-overlay">
-        <div className="processing-spinner-container">
-          <div className="processing-spinner"></div>
-          <div className="processing-spinner-inner"></div>
+      <div className="processing-overlay">
+        <div className="processing-spinner-wrap">
+          <div className="processing-spinner" />
+          <div className="processing-spinner-inner" />
         </div>
-        
-        <h2 className="processing-status-title">
+
+        <h2 className="processing-title">
           {deckStatus === 'failed' ? 'Generation Failed' : 'Creating Presentation'}
         </h2>
-        
-        <p className="processing-status-text" style={{ color: deckStatus === 'failed' ? 'var(--color-error)' : 'var(--color-text-secondary)' }}>
+
+        <p className="processing-text" style={{ color: deckStatus === 'failed' ? 'var(--error)' : undefined }}>
           {deckStatus === 'pending' && 'Initializing deck generation...'}
           {deckStatus === 'transcribing' && 'Extracting and transcribing video content... This may take a minute.'}
           {deckStatus === 'generating' && 'Designing slide layouts & generating content with AI...'}
@@ -247,43 +254,45 @@ function NewDeck() {
         </p>
 
         {deckStatus !== 'failed' && (
-          <div className="processing-status-steps">
-            <div className={`processing-step ${deckStatus === 'pending' ? 'active' : 'done'}`}>
-              <span className="step-indicator-dot"></span>
-              <span>1. Initialize generation pipeline</span>
-            </div>
-            
-            {activeTab === 'url' && (
-              <div className={`processing-step ${deckStatus === 'transcribing' ? 'active' : (deckStatus === 'generating' || deckStatus === 'ready') ? 'done' : ''}`}>
-                <span className="step-indicator-dot"></span>
-                <span>2. Transcribe video content</span>
-              </div>
-            )}
-            
-            <div className={`processing-step ${deckStatus === 'generating' ? 'active' : deckStatus === 'ready' ? 'done' : ''}`}>
-              <span className="step-indicator-dot"></span>
-              <span>{activeTab === 'url' ? '3. Generate slides with AI' : '2. Generate slides with AI'}</span>
-            </div>
-            
-            <div className={`processing-step ${deckStatus === 'ready' ? 'active' : ''}`}>
-              <span className="step-indicator-dot"></span>
-              <span>{activeTab === 'url' ? '4. Ready' : '3. Ready'}</span>
-            </div>
+          <div className="processing-steps">
+            {steps.map(step => {
+              const isActive = deckStatus === step.key
+              const isDone = step.key === 'pending' ||
+                (activeTab === 'url' && deckStatus !== 'pending' && step.key === 'transcribing' && (deckStatus === 'generating' || deckStatus === 'ready')) ||
+                (deckStatus === 'ready' && (step.key === 'generating' || step.key === 'transcribing'))
+
+              return (
+                <div
+                  key={step.key}
+                  className={`processing-step ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}`}
+                >
+                  <span className="processing-step-dot" />
+                  <span>{step.num}. {step.label}</span>
+                </div>
+              )
+            })}
           </div>
         )}
 
         {deckStatus === 'failed' && (
-          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button className="btn btn-secondary" onClick={() => {
-              setLoading(false)
-              setDeckStatus('pending')
-              setError(errorMessage)
-            }}>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setLoading(false)
+                setDeckStatus('pending')
+                setError(errorMessage)
+              }}
+            >
               Go Back
             </button>
             {errorMessage && errorMessage.includes('Upgrade') && (
               <button className="btn btn-primary" onClick={() => navigate('/pricing')}>
-                Upgrade Plan ⚡
+                Upgrade Plan
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
               </button>
             )}
           </div>
@@ -293,49 +302,68 @@ function NewDeck() {
   }
 
   return (
-    <div className="dashboard-container new-deck-card">
-      <header className="dashboard-header" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: '1.5rem', marginBottom: '2.5rem' }}>
-        <div className="dashboard-title">
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, background: 'linear-gradient(135deg, #f3f4f6 0%, #9ca3af 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Create New Slide Deck
-          </h1>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
-            AI-designed presentations directly from video transcripts
-          </p>
-        </div>
-      </header>
+    <div className="page-container wizard-card">
+      {/* Header */}
+      <div style={{ marginBottom: 'var(--space-8)' }}>
+        <h1 style={{
+          fontSize: 'var(--text-3xl)',
+          fontWeight: 800,
+          letterSpacing: 'var(--tracking-tight)',
+          marginBottom: 'var(--space-2)',
+          background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>
+          Create New Slide Deck
+        </h1>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          AI-designed presentations directly from video transcripts
+        </p>
+      </div>
 
+      {/* Error Alert */}
       {error && (
-        <div className="alert alert-error" role="alert" style={{ marginBottom: '2rem' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        <div className="alert alert-error" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span>{error}</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem' }}>
-        <button 
-          className={`btn ${activeTab === 'url' ? 'btn-primary' : 'btn-secondary'}`} 
+      {/* Tabs */}
+      <div className="wizard-tabs">
+        <button
+          className={`wizard-tab ${activeTab === 'url' ? 'active' : ''}`}
           onClick={() => setActiveTab('url')}
-          style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem' }}
         >
-          Option A: Video URL
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          Video URL
         </button>
-        <button 
-          className={`btn ${activeTab === 'paste' ? 'btn-primary' : 'btn-secondary'}`} 
+        <button
+          className={`wizard-tab ${activeTab === 'paste' ? 'active' : ''}`}
           onClick={() => setActiveTab('paste')}
-          style={{ padding: '0.5rem 1.25rem', fontSize: '0.9rem' }}
         >
-          Option B: Paste Transcript
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+          </svg>
+          Paste Transcript
         </button>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="form-group" style={{ marginBottom: '1.75rem' }}>
-          <label className="form-label" htmlFor="deck-title">Deck Title (Optional)</label>
+        {/* Deck Title */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="deck-title">
+            Deck Title <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(Optional)</span>
+          </label>
           <input
             type="text"
             id="deck-title"
@@ -346,11 +374,14 @@ function NewDeck() {
           />
         </div>
 
-        <div className="form-group" style={{ marginBottom: '1.75rem' }}>
-          <label className="form-label" htmlFor="brand-kit-select">Brand Kit Theme (Optional)</label>
+        {/* Brand Kit */}
+        <div className="form-group">
+          <label className="form-label" htmlFor="brand-kit-select">
+            Brand Kit Theme <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(Optional)</span>
+          </label>
           <select
             id="brand-kit-select"
-            className="form-input brand-kit-select"
+            className="form-select"
             value={selectedBrandKitId}
             onChange={(e) => setSelectedBrandKitId(e.target.value)}
           >
@@ -361,50 +392,92 @@ function NewDeck() {
           </select>
         </div>
 
+        {/* URL Input */}
         {activeTab === 'url' ? (
-          <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label" htmlFor="video-url">Loom or YouTube URL</label>
-            <input
-              type="url"
-              id="video-url"
-              className="form-input"
-              placeholder="e.g. https://www.loom.com/share/... or https://www.youtube.com/watch?v=..."
-              value={sourceUrl}
-              onChange={(e) => {
-                setSourceUrl(e.target.value)
-                detectSourceType(e.target.value)
-              }}
-              required
-            />
+          <div className="form-group">
+            <label className="form-label" htmlFor="video-url">
+              Loom or YouTube URL
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="url"
+                id="video-url"
+                className="form-input"
+                placeholder="https://www.loom.com/share/... or https://www.youtube.com/watch?v=..."
+                value={sourceUrl}
+                onChange={(e) => {
+                  setSourceUrl(e.target.value)
+                  detectSourceType(e.target.value)
+                }}
+                required
+                style={{ paddingLeft: '2.75rem' }}
+              />
+              <span style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-tertiary)'
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+              </span>
+            </div>
+
             {detectedSourceType && (
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-success)', marginTop: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 500 }}>
-                <span style={{ fontSize: '1.1rem' }}>✓</span> 
-                <span>Detected {detectedSourceType === 'youtube' ? 'YouTube Video ⚡' : 'Loom Video 🎥'}</span>
+              <div className="source-detect">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span>
+                  Detected {detectedSourceType === 'youtube' ? 'YouTube' : 'Loom'} video
+                </span>
               </div>
             )}
           </div>
         ) : (
-          <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label" htmlFor="transcript-text">Raw Transcript Text</label>
+          /* Transcript Input */
+          <div className="form-group">
+            <label className="form-label" htmlFor="transcript-text">
+              Raw Transcript Text
+            </label>
             <textarea
               id="transcript-text"
-              className="form-input"
+              className="form-textarea"
               placeholder="Paste the transcription text here. AI will structure and compile it directly into slides."
               value={transcriptText}
               onChange={(e) => setTranscriptText(e.target.value)}
-              style={{ minHeight: '180px', resize: 'vertical', lineHeight: '1.6' }}
+              style={{ minHeight: 200, lineHeight: 'var(--leading-relaxed)' }}
               required
             />
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
-          className="btn btn-primary"
+          className="btn btn-primary btn-lg"
           disabled={activeTab === 'url' && !detectedSourceType}
-          style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', marginTop: '1rem' }}
+          style={{ width: '100%', marginTop: 'var(--space-4)' }}
         >
-          Generate Presentation ⚡
+          {activeTab === 'url' ? (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Generate Presentation
+            </>
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Generate from Transcript
+            </>
+          )}
         </button>
       </form>
     </div>

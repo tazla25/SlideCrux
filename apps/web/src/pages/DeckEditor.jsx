@@ -7,20 +7,19 @@ import { exportDeckToPptx } from '../lib/exportPptx';
 import { initiateGoogleAuth, extractGoogleToken, exportDeckToGoogleSlides } from '../lib/gslides';
 import { trackEvent } from '../lib/analytics';
 
-
 export default function DeckEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [deck, setDeck] = useState(null);
   const [slides, setSlides] = useState([]);
   const [brandKits, setBrandKits] = useState([]);
   const [brandKit, setBrandKit] = useState(null);
   const [activeSlideId, setActiveSlideId] = useState(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [savingStatus, setSavingStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved' | 'error'
+  const [savingStatus, setSavingStatus] = useState('saved');
   const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   const editVersionRef = useRef(0);
@@ -29,15 +28,16 @@ export default function DeckEditor() {
   const [deckTitle, setDeckTitle] = useState('');
   const [plan, setPlan] = useState('free');
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
-  const [exportingStatus, setExportingStatus] = useState(null); // null | 'pdf' | 'pptx' | 'gslides'
+  const [exportingStatus, setExportingStatus] = useState(null);
   const [googleSlidesStatus, setGoogleSlidesStatus] = useState('');
+
+  // Mobile tab state: 'preview' | 'edit'
+  const [mobileTab, setMobileTab] = useState('preview');
 
   const slidesRef = useRef(slides);
   useEffect(() => {
     slidesRef.current = slides;
   }, [slides]);
-
-  // Removed deck title effect to avoid synchronous setState inside render/effect cycles
 
   const activeSlide = slides.find(s => s.id === activeSlideId) || null;
 
@@ -79,7 +79,6 @@ export default function DeckEditor() {
     }
   }, [deck, deckTitle, brandKit, plan, id]);
 
-  // Handle Google Slides OAuth callback redirection and automatic export
   useEffect(() => {
     if (loading || !deck || slides.length === 0) return;
 
@@ -94,8 +93,7 @@ export default function DeckEditor() {
     checkPendingGoogleSlidesExport();
   }, [loading, deck, slides, id, triggerGoogleSlidesExport]);
 
-
-  // 1. Initial Load: Deck, Slides, Brand Kits
+  // Initial Load
   useEffect(() => {
     let isMounted = true;
 
@@ -103,7 +101,6 @@ export default function DeckEditor() {
       setLoading(true);
       setError(null);
       try {
-        // Fetch Deck Metadata
         const { data: deckData, error: deckError } = await supabase
           .from('decks')
           .select('title, status, brand_kit_id, watermark, error, public_slug')
@@ -113,7 +110,6 @@ export default function DeckEditor() {
         if (deckError) throw deckError;
         if (!isMounted) return;
 
-        // Fetch User's Profile Plan
         const { data: { user } } = await supabase.auth.getUser();
         let currentPlan = 'free';
         if (user && isMounted) {
@@ -128,8 +124,7 @@ export default function DeckEditor() {
           }
         }
 
-        // If plan is 'free', enforce watermark is true in both DB and visual states
-        if (currentPlan === 'free' && deckData.watermark !== true) {
+        if (currentPlan === 'free') {
           await supabase
             .from('decks')
             .update({ watermark: true })
@@ -140,7 +135,6 @@ export default function DeckEditor() {
         setDeck(deckData);
         setDeckTitle(deckData.title || 'Untitled Presentation');
 
-        // Fetch User's Brand Kits (to allow selection)
         const { data: kitsData } = await supabase
           .from('brand_kits')
           .select('*')
@@ -153,7 +147,6 @@ export default function DeckEditor() {
           }
         }
 
-        // Fetch Slides only if ready
         if (deckData.status === 'ready') {
           const { data: slidesData, error: slidesError } = await supabase
             .from('slides')
@@ -188,7 +181,7 @@ export default function DeckEditor() {
     };
   }, [id]);
 
-  // 2. Status Polling if deck is not ready/failed
+  // Status Polling
   useEffect(() => {
     let isMounted = true;
     let intervalId = null;
@@ -208,7 +201,6 @@ export default function DeckEditor() {
         setDeckTitle(deckData.title || 'Untitled Presentation');
 
         if (deckData.status === 'ready') {
-          // Retrieve slides now that they are ready
           const { data: slidesData } = await supabase
             .from('slides')
             .select('*')
@@ -240,9 +232,7 @@ export default function DeckEditor() {
     };
   }, [id, deck?.status]);
 
-  // Debounced auto-save hook moved below saveActiveSlide to avoid temporal dead zone
-
-  // Save the currently active slide
+  // Save active slide
   const saveActiveSlide = useCallback(async () => {
     const startVersion = editVersionRef.current;
     isSavingRef.current = true;
@@ -255,7 +245,6 @@ export default function DeckEditor() {
 
     setSavingStatus('saving');
     try {
-      // Filter out empty lines from bullets
       const cleanBullets = Array.isArray(slideToSave.bullets)
         ? slideToSave.bullets.map(b => typeof b === 'string' ? b.trim() : b).filter(b => b !== '')
         : [];
@@ -272,7 +261,7 @@ export default function DeckEditor() {
         .eq('id', activeSlideId);
 
       if (saveError) throw saveError;
-      
+
       if (editVersionRef.current === startVersion) {
         setUnsavedChanges(false);
         setSavingStatus('saved');
@@ -287,18 +276,17 @@ export default function DeckEditor() {
     }
   }, [activeSlideId]);
 
-  // 3. Debounced Auto-Save for Slides
+  // Debounced auto-save
   useEffect(() => {
     if (!activeSlideId || !unsavedChanges) return;
 
     const timer = setTimeout(() => {
       saveActiveSlide();
-    }, 1500); // 1.5s typing debounce
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [activeSlideId, unsavedChanges, editVersion, saveActiveSlide]);
 
-  // Change input handler
   const handleFieldChange = (field, value) => {
     setSlides(prev => prev.map(s => s.id === activeSlideId ? { ...s, [field]: value } : s));
     editVersionRef.current += 1;
@@ -307,10 +295,9 @@ export default function DeckEditor() {
     setSavingStatus('unsaved');
   };
 
-  // Switch slides (saves active slide first if unsaved)
   const handleSlideSelect = async (nextSlideId) => {
     if (nextSlideId === activeSlideId || isSavingRef.current) return;
-    
+
     if (unsavedChanges) {
       const success = await saveActiveSlide();
       if (!success) {
@@ -321,7 +308,6 @@ export default function DeckEditor() {
     setActiveSlideId(nextSlideId);
   };
 
-  // Add Slide
   const handleAddSlide = async () => {
     if (isSavingRef.current) return;
     if (unsavedChanges) {
@@ -366,7 +352,6 @@ export default function DeckEditor() {
     }
   };
 
-  // Delete Slide
   const handleDeleteSlide = async () => {
     if (!activeSlideId || isSavingRef.current) return;
     if (unsavedChanges) {
@@ -398,7 +383,7 @@ export default function DeckEditor() {
       } else {
         setActiveSlideId(null);
       }
-      
+
       setUnsavedChanges(false);
       setSavingStatus('saved');
     } catch (err) {
@@ -409,7 +394,6 @@ export default function DeckEditor() {
     }
   };
 
-  // Prevent SPA Router Navigation Data Loss & Tab Closure
   const handleDashboardClick = async () => {
     if (unsavedChanges) {
       const success = await saveActiveSlide();
@@ -435,12 +419,10 @@ export default function DeckEditor() {
     };
   }, [unsavedChanges]);
 
-  // Update brand kit linked to deck
   const handleBrandKitChange = async (kitId) => {
     const previousBrandKitId = deck?.brand_kit_id || null;
     const previousBrandKit = brandKit;
 
-    // Optimistically update local state
     setDeck(prev => ({ ...prev, brand_kit_id: kitId || null }));
     const activeKit = brandKits.find(k => k.id === kitId);
     setBrandKit(activeKit || null);
@@ -454,14 +436,12 @@ export default function DeckEditor() {
       if (updateError) throw updateError;
     } catch (err) {
       console.error('Error updating deck brand kit:', err);
-      // Revert state
       setDeck(prev => ({ ...prev, brand_kit_id: previousBrandKitId }));
       setBrandKit(previousBrandKit);
       alert('Failed to update brand kit. Please try again.');
     }
   };
 
-  // Rename deck title
   const handleTitleBlur = async (e) => {
     const newTitle = e.target.value.trim();
     const previousTitle = deck?.title || 'Untitled Presentation';
@@ -486,35 +466,54 @@ export default function DeckEditor() {
     }
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="deck-editor-container" style={{ display: 'flex', flexDirection: 'column' }}>
-        <header className="deck-editor-header" style={{ display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: '1px solid var(--color-border)' }}>
-          <div className="skeleton-loading" style={{ width: '100px', height: '30px', marginRight: '2rem' }}></div>
-          <div className="skeleton-loading" style={{ width: '300px', height: '30px' }}></div>
-          <div style={{ flex: 1 }}></div>
-          <div className="skeleton-loading" style={{ width: '120px', height: '36px', borderRadius: 'var(--radius-md)' }}></div>
-        </header>
-        <div className="editor-layout" style={{ flex: 1 }}>
-          <div className="editor-sidebar" style={{ padding: '1rem' }}>
-            <div className="skeleton-text short skeleton-loading" style={{ marginBottom: '2rem' }}></div>
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="skeleton-card skeleton-loading" style={{ height: '80px', marginBottom: '1rem' }}></div>
-            ))}
+      <div className="editor-container">
+        <header className="editor-header">
+          <div className="editor-title-group">
+            <div className="skeleton" style={{ width: 90, height: 32 }} />
+            <div className="skeleton" style={{ width: 260, height: 32 }} />
           </div>
-          <div className="editor-main" style={{ padding: '2rem' }}>
-            <div className="skeleton-card skeleton-loading" style={{ height: '600px', maxWidth: '1000px', margin: '0 auto' }}></div>
+          <div className="skeleton" style={{ width: 100, height: 36, borderRadius: 'var(--radius-md)' }} />
+        </header>
+        <div style={{ flex: 1, display: 'flex' }}>
+          <div style={{ flex: 1, padding: 'var(--space-6)' }}>
+            <div className="skeleton" style={{ width: '100%', maxWidth: 900, aspectRatio: '16/9', borderRadius: 'var(--radius-lg)', margin: '0 auto' }} />
+          </div>
+          <div style={{ width: 400, borderLeft: '1px solid var(--border-subtle)', padding: 'var(--space-6)', display: 'block' }} className="hide-mobile">
+            <div className="skeleton" style={{ width: 120, height: 24, marginBottom: 'var(--space-6)' }} />
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="skeleton" style={{ width: '100%', height: 56, marginBottom: 'var(--space-3)', borderRadius: 'var(--radius-md)' }} />
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <div className="dashboard-container" style={{ textAlign: 'center', marginTop: '5rem' }}>
-        <h2 style={{ color: 'var(--color-error)' }}>Error Loading Editor</h2>
-        <p style={{ margin: '1rem 0' }}>{error}</p>
+      <div className="page-container" style={{ textAlign: 'center', marginTop: '5rem' }}>
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          background: 'var(--error-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto var(--space-4)'
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <h2 style={{ color: 'var(--error)', fontWeight: 800, marginBottom: 'var(--space-3)' }}>Error Loading Editor</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>{error}</p>
         <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
           Back to Dashboard
         </button>
@@ -522,37 +521,37 @@ export default function DeckEditor() {
     );
   }
 
-  // Polling / processing overlay for pending decks
+  // Processing overlay for pending decks
   if (deck && (deck.status === 'pending' || deck.status === 'generating' || deck.status === 'transcribing')) {
     return (
-      <div className="deck-processing-overlay">
-        <div className="processing-spinner-container">
+      <div className="processing-overlay">
+        <div className="processing-spinner-wrap">
           <div className="processing-spinner" />
           <div className="processing-spinner-inner" />
         </div>
-        <h2 className="processing-status-title">Generating Your AI Deck</h2>
-        <p className="processing-status-text">
+        <h2 className="processing-title">Generating Your AI Deck</h2>
+        <p className="processing-text">
           Our AI pipeline is busy parsing your video content, structuring your slides, and applying a beautiful custom theme. This takes about 15-30 seconds.
         </p>
 
-        <div className="processing-status-steps">
+        <div className="processing-steps">
           <div className={`processing-step ${deck.status !== 'pending' ? 'done' : 'active'}`}>
-            <span className="step-indicator-dot" />
-            <span>Extracting Transcript</span>
+            <span className="processing-step-dot" />
+            <span>1. Extracting Transcript</span>
           </div>
           <div className={`processing-step ${deck.status === 'generating' ? 'active' : deck.status === 'ready' ? 'done' : ''}`}>
-            <span className="step-indicator-dot" />
-            <span>AI Structured Slide Layouts</span>
+            <span className="processing-step-dot" />
+            <span>2. AI Structured Slide Layouts</span>
           </div>
           <div className="processing-step">
-            <span className="step-indicator-dot" />
-            <span>Finishing Touches & Design</span>
+            <span className="processing-step-dot" />
+            <span>3. Finishing Touches & Design</span>
           </div>
         </div>
 
-        <button 
-          className="btn btn-secondary" 
-          style={{ marginTop: '2.5rem' }} 
+        <button
+          className="btn btn-secondary"
+          style={{ marginTop: 'var(--space-8)' }}
           onClick={() => navigate('/dashboard')}
         >
           Cancel & Back to Dashboard
@@ -561,12 +560,28 @@ export default function DeckEditor() {
     );
   }
 
+  // Failed state
   if (deck && deck.status === 'failed') {
     return (
-      <div className="deck-processing-overlay">
-        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>❌</div>
-        <h2 style={{ color: 'var(--color-error)', fontWeight: 800 }}>Generation Failed</h2>
-        <p className="processing-status-text" style={{ color: 'var(--color-text-secondary)' }}>
+      <div className="processing-overlay">
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: '50%',
+          background: 'var(--error-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 'var(--space-6)'
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        </div>
+        <h2 style={{ color: 'var(--error)', fontWeight: 800, marginBottom: 'var(--space-3)', fontSize: 'var(--text-3xl)' }}>Generation Failed</h2>
+        <p className="processing-text">
           {deck.error || 'An unexpected error occurred while processing your deck.'}
         </p>
         <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
@@ -577,35 +592,37 @@ export default function DeckEditor() {
   }
 
   return (
-    <div className="deck-editor-container">
+    <div className="editor-container">
+      {/* Export overlay */}
       {exportingStatus && (
-        <div className="deck-processing-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
-          <div className="processing-spinner-container">
+        <div className="processing-overlay" style={{ position: 'fixed', zIndex: 'var(--z-modal)' }}>
+          <div className="processing-spinner-wrap">
             <div className="processing-spinner" />
             <div className="processing-spinner-inner" />
           </div>
-          <h2 className="processing-status-title">Exporting Presentation</h2>
-          <p className="processing-status-text" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 className="processing-title">Exporting Presentation</h2>
+          <p className="processing-text" style={{ maxWidth: 600 }}>
             {exportingStatus === 'pdf' && 'Generating high-resolution PDF canvas. Please do not close this tab...'}
             {exportingStatus === 'pptx' && 'Mapping slide layouts and elements to native PowerPoint structures...'}
             {exportingStatus === 'gslides' && (googleSlidesStatus || 'Exporting to Google Slides...')}
           </p>
         </div>
       )}
-      {/* Editor Header Banner */}
-      <header className="deck-editor-header">
-        <div className="deck-editor-title-section">
+
+      {/* Editor Header */}
+      <header className="editor-header">
+        <div className="editor-title-group">
           <button onClick={handleDashboardClick} className="btn-back">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
             </svg>
             Dashboard
           </button>
-          
+
           <input
             type="text"
-            className="deck-title-input"
+            className="editor-title-input"
             value={deckTitle}
             onChange={(e) => setDeckTitle(e.target.value)}
             onBlur={handleTitleBlur}
@@ -618,60 +635,43 @@ export default function DeckEditor() {
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Save Status Banner */}
-          <div className={`save-status-badge ${savingStatus}`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          {/* Save Status */}
+          <div className={`save-status save-status-${savingStatus}`}>
             <span style={{
               display: 'inline-block',
-              width: '6px',
-              height: '6px',
+              width: 6,
+              height: 6,
               borderRadius: '50%',
-              backgroundColor: 'currentColor'
+              background: 'currentColor'
             }} />
             {savingStatus === 'saved' && 'Saved'}
             {savingStatus === 'saving' && 'Saving...'}
-            {savingStatus === 'unsaved' && 'Unsaved changes'}
-            {savingStatus === 'error' && 'Error saving'}
+            {savingStatus === 'unsaved' && 'Unsaved'}
+            {savingStatus === 'error' && 'Error'}
           </div>
 
-          {/* Export Dropdown Menu */}
+          {/* Export Dropdown */}
           <div style={{ position: 'relative' }}>
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-sm"
               onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
-              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
             >
-              Export ▾
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 2 }}>
+                <path d="m6 9 6 6 6-6" />
+              </svg>
             </button>
             {exportDropdownOpen && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '0.5rem',
-                backgroundColor: 'var(--color-bg-secondary)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                zIndex: 10,
-                minWidth: '225px',
-                padding: '0.5rem'
-              }}>
+              <div className="export-dropdown">
                 <button
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.6rem 0.8rem',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: 'var(--color-text-primary)',
-                    cursor: 'pointer',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.875rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
+                  className="export-dropdown-item"
                   onClick={async () => {
                     setExportDropdownOpen(false);
                     setExportingStatus('pdf');
@@ -688,151 +688,167 @@ export default function DeckEditor() {
                   }}
                 >
                   <span>Export PDF</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>Free</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', fontWeight: 600 }}>Free</span>
                 </button>
 
                 <button
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.6rem 0.8rem',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: plan === 'free' ? 'var(--color-text-secondary)' : 'var(--color-text-primary)',
-                    cursor: 'pointer',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.875rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    opacity: plan === 'free' ? 0.6 : 1
-                  }}
+                  className="export-dropdown-item"
+                  disabled={plan === 'free'}
+                  style={{ opacity: plan === 'free' ? 0.5 : 1 }}
                   onClick={async () => {
                     setExportDropdownOpen(false);
                     if (plan === 'free') {
                       alert("PPTX Export requires Pro plan. Upgrade to unlock.");
-                    } else {
-                      setExportingStatus('pptx');
-                      try {
-                        const watermarkEnforced = plan === 'free' || (deck?.watermark ?? true);
-                        await exportDeckToPptx(deckTitle, slides, brandKit, watermarkEnforced);
-                        trackEvent('deck_exported', { format: 'pptx' });
-                      } catch (err) {
-                        console.error('PPTX export failed:', err);
-                        alert('PPTX export failed: ' + err.message);
-                      } finally {
-                        setExportingStatus(null);
-                      }
+                      return;
+                    }
+                    setExportingStatus('pptx');
+                    try {
+                      const watermarkEnforced = plan === 'free' || (deck?.watermark ?? true);
+                      await exportDeckToPptx(deckTitle, slides, brandKit, watermarkEnforced);
+                      trackEvent('deck_exported', { format: 'pptx' });
+                    } catch (err) {
+                      console.error('PPTX export failed:', err);
+                      alert('PPTX export failed: ' + err.message);
+                    } finally {
+                      setExportingStatus(null);
                     }
                   }}
                 >
                   <span>Export PPTX</span>
                   {plan === 'free' ? (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-accent)' }}>🔒 Pro</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--warning)', fontWeight: 600 }}>Pro</span>
                   ) : (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>Active</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', fontWeight: 600 }}>Active</span>
                   )}
                 </button>
 
                 <button
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.6rem 0.8rem',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: plan === 'team' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                    cursor: 'pointer',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.875rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    opacity: plan === 'team' ? 1 : 0.6
-                  }}
+                  className="export-dropdown-item"
+                  disabled={plan !== 'team'}
+                  style={{ opacity: plan !== 'team' ? 0.5 : 1 }}
                   onClick={async () => {
                     setExportDropdownOpen(false);
                     if (plan !== 'team') {
                       alert("Google Slides Export requires Team plan. Upgrade to unlock.");
+                      return;
+                    }
+                    const token = extractGoogleToken();
+                    if (!token) {
+                      localStorage.setItem('pending_gslides_export_' + id, 'true');
+                      initiateGoogleAuth();
                     } else {
-                      const token = extractGoogleToken();
-                      if (!token) {
-                        localStorage.setItem('pending_gslides_export_' + id, 'true');
-                        initiateGoogleAuth();
-                      } else {
-                        await triggerGoogleSlidesExport(token);
-                      }
+                      await triggerGoogleSlidesExport(token);
                     }
                   }}
                 >
                   <span>Google Slides</span>
                   {plan !== 'team' ? (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-accent)' }}>🔒 Team</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--warning)', fontWeight: 600 }}>Team</span>
                   ) : (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>Active</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', fontWeight: 600 }}>Active</span>
                   )}
                 </button>
               </div>
             )}
           </div>
 
-          <button 
-            className="btn btn-primary"
+          <button
+            className="btn btn-primary btn-sm"
             onClick={saveActiveSlide}
             disabled={savingStatus === 'saved' || savingStatus === 'saving'}
-            style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
           >
-            Save Slide
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Save
           </button>
         </div>
       </header>
 
-      {/* Main Workspace split */}
-      <div className="deck-editor-main">
-        {/* Left pane: Slide Preview & Slide Strip Navigator */}
-        <div className="deck-editor-left-pane">
-          <div className="deck-preview-wrapper">
+      {/* Mobile Tabs */}
+      <div className="editor-mobile-tabs">
+        <button
+          className={`editor-mobile-tab ${mobileTab === 'preview' ? 'active' : ''}`}
+          onClick={() => setMobileTab('preview')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: 6 }}>
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+          </svg>
+          Preview
+        </button>
+        <button
+          className={`editor-mobile-tab ${mobileTab === 'edit' ? 'active' : ''}`}
+          onClick={() => setMobileTab('edit')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: 6 }}>
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          Edit
+        </button>
+      </div>
+
+      {/* Main Workspace */}
+      <div className="editor-main">
+        {/* Left Pane: Preview */}
+        <div className={`editor-left-pane ${mobileTab === 'edit' ? 'hidden-mobile' : ''}`}>
+          <div className="editor-preview-wrapper">
             {activeSlide ? (
-              <SlideRenderer 
-                slide={activeSlide} 
-                brandKit={brandKit} 
-                showWatermark={deck?.watermark} 
+              <SlideRenderer
+                slide={activeSlide}
+                brandKit={brandKit}
+                showWatermark={deck?.watermark}
               />
             ) : (
               <div style={{
                 width: '100%',
                 height: '100%',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px dashed var(--color-border)',
+                border: '2px dashed var(--border-default)',
                 borderRadius: 'var(--radius-lg)',
-                color: 'var(--color-text-secondary)'
+                color: 'var(--text-tertiary)',
+                gap: 'var(--space-3)'
               }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
                 No slide selected. Click + below to add one.
               </div>
             )}
           </div>
 
-          {/* Horizontal Slide Strip Navigator */}
-          <div className="deck-navigator">
-            <div className="navigator-title">Navigator</div>
+          {/* Slide Navigator */}
+          <div className="slide-navigator">
+            <div className="slide-navigator-header">
+              <span className="slide-navigator-title">Slides</span>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                {slides.length} total
+              </span>
+            </div>
             <div className="slide-strip">
               {slides.map((s, index) => {
                 const isActive = s.id === activeSlideId;
                 return (
                   <div
                     key={s.id}
-                    className={`slide-thumbnail ${isActive ? 'active' : ''} ${savingStatus === 'saving' ? 'disabled' : ''}`}
+                    className={`slide-thumb ${isActive ? 'active' : ''} ${savingStatus === 'saving' ? 'disabled' : ''}`}
                     onClick={() => handleSlideSelect(s.id)}
                   >
-                    <span className="thumbnail-number">{index + 1}</span>
-                    <div className="thumbnail-content">
-                      <span className="thumbnail-layout">{s.layout}</span>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis', 
+                    <span className="slide-thumb-number">{index + 1}</span>
+                    <div className="slide-thumb-content">
+                      <span className="slide-thumb-layout">{s.layout}</span>
+                      <span style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         maxWidth: '120px'
                       }}>
@@ -843,45 +859,60 @@ export default function DeckEditor() {
                 );
               })}
 
-              {/* Add Slide Quick Card */}
-              <button className="thumbnail-add-card" onClick={handleAddSlide} disabled={savingStatus === 'saving'}>
-                <span className="thumbnail-add-icon">+</span>
-                <span className="thumbnail-add-text">Add Slide</span>
+              <button className="slide-thumb-add" onClick={handleAddSlide} disabled={savingStatus === 'saving'}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>Add</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right pane: Slide Details Form Controls */}
-        <div className="deck-editor-right-pane">
-          <div className="editor-pane-header">
-            <div className="editor-pane-title">
-              <h2>Slide Editor</h2>
-            </div>
+        {/* Right Pane: Editor Form */}
+        <div className={`editor-right-pane ${mobileTab === 'preview' ? 'hidden-mobile' : ''}`}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <h2 className="editor-pane-title">Slide Editor</h2>
+            {/* Mobile close button to go back to preview */}
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setMobileTab('preview')}
+              style={{ display: 'none' }}
+              id="mobile-back-to-preview"
+            >
+              Done
+            </button>
           </div>
 
           {activeSlide ? (
             <>
               <div className="editor-form">
+                {/* Free plan watermark notice */}
                 {plan === 'free' && (
                   <div style={{
-                    padding: '0.75rem',
-                    marginBottom: '1rem',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    padding: 'var(--space-3) var(--space-4)',
+                    background: 'var(--warning-bg)',
+                    border: '1px solid rgba(251, 191, 36, 0.2)',
                     borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-accent)',
-                    fontSize: '0.85rem',
-                    lineHeight: '1.4',
+                    color: 'var(--warning)',
+                    fontSize: 'var(--text-sm)',
+                    lineHeight: 'var(--leading-relaxed)',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
+                    alignItems: 'flex-start',
+                    gap: 'var(--space-2)'
                   }}>
-                    <span>⚠️</span>
-                    <span><strong>Free Plan:</strong> Watermark is enforced on your presentations. Upgrade to Pro/Team to remove it.</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <span><strong>Free Plan:</strong> Watermark is enforced. Upgrade to Pro/Team to remove it.</span>
                   </div>
                 )}
-                <div className="form-group">
+
+                {/* Layout */}
+                <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                   <label className="form-label">Layout</label>
                   <select
                     className="form-select"
@@ -896,7 +927,8 @@ export default function DeckEditor() {
                   </select>
                 </div>
 
-                <div className="form-group">
+                {/* Heading */}
+                <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                   <label className="form-label">
                     {activeSlide.layout === 'quote' ? 'Quote Text' : 'Slide Heading'}
                   </label>
@@ -909,9 +941,9 @@ export default function DeckEditor() {
                   />
                 </div>
 
-                {/* Conditional fields based on layout */}
+                {/* Conditional fields */}
                 {activeSlide.layout === 'title' && (
-                  <div className="form-group">
+                  <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                     <label className="form-label">Subtitle</label>
                     <input
                       type="text"
@@ -924,19 +956,20 @@ export default function DeckEditor() {
                 )}
 
                 {(activeSlide.layout === 'bullets' || activeSlide.layout === 'image_right') && (
-                  <div className="form-group">
+                  <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                     <label className="form-label">Bullet Points (one per line)</label>
                     <textarea
                       className="form-textarea"
                       value={Array.isArray(activeSlide.bullets) ? activeSlide.bullets.join('\n') : ''}
                       onChange={(e) => handleFieldChange('bullets', e.target.value.split('\n'))}
                       placeholder="First bullet point&#10;Second bullet point&#10;Third bullet point..."
+                      style={{ minHeight: 140 }}
                     />
                   </div>
                 )}
 
                 {activeSlide.layout === 'quote' && (
-                  <div className="form-group">
+                  <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                     <label className="form-label">Citation / Author</label>
                     <input
                       type="text"
@@ -950,7 +983,7 @@ export default function DeckEditor() {
 
                 {activeSlide.layout === 'image_right' && (
                   <>
-                    <div className="form-group">
+                    <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                       <label className="form-label">Image URL (Optional)</label>
                       <input
                         type="text"
@@ -960,11 +993,11 @@ export default function DeckEditor() {
                         placeholder="https://images.unsplash.com/..."
                       />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
                       <label className="form-label">AI Image Prompt (Optional)</label>
                       <textarea
                         className="form-textarea"
-                        style={{ minHeight: '60px' }}
+                        style={{ minHeight: 60 }}
                         value={activeSlide.image_prompt || ''}
                         onChange={(e) => handleFieldChange('image_prompt', e.target.value)}
                         placeholder="e.g. A high-tech server room with neon blue lights, isometric 3d render..."
@@ -973,8 +1006,8 @@ export default function DeckEditor() {
                   </>
                 )}
 
-                {/* Brand Kit Selector for the whole Deck */}
-                <div className="form-group" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+                {/* Brand Kit */}
+                <div className="form-group" style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
                   <label className="form-label">Deck Brand Kit</label>
                   <select
                     className="form-select"
@@ -990,8 +1023,8 @@ export default function DeckEditor() {
                   </select>
                 </div>
 
-                {/* Watermark Checkbox */}
-                <div 
+                {/* Watermark */}
+                <div
                   className="form-group"
                   onClickCapture={(e) => {
                     if (plan === 'free') {
@@ -999,20 +1032,21 @@ export default function DeckEditor() {
                       alert("Watermark removal is a Pro feature. Upgrade your plan.");
                     }
                   }}
+                  style={{ marginBottom: 'var(--space-4)' }}
                 >
-                  <label 
-                    className="form-label" 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.5rem', 
+                  <label
+                    className="form-label"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                       cursor: plan === 'free' ? 'not-allowed' : 'pointer',
-                      opacity: plan === 'free' ? 0.7 : 1
+                      opacity: plan === 'free' ? 0.6 : 1
                     }}
                   >
                     <input
                       type="checkbox"
-                      style={{ width: 'auto', marginRight: '0.25rem' }}
+                      className="form-checkbox"
                       checked={plan === 'free' ? true : (deck.watermark ?? true)}
                       disabled={plan === 'free'}
                       onChange={async (e) => {
@@ -1037,14 +1071,14 @@ export default function DeckEditor() {
                   </label>
                 </div>
 
-                {/* Share Presentation */}
-                <div className="form-group" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
-                  <label className="form-label" style={{ fontWeight: 600 }}>Share Presentation</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+                {/* Share */}
+                <div className="form-group" style={{ paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
+                  <label className="form-label" style={{ fontWeight: 700 }}>Share Presentation</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', margin: 'var(--space-2) 0' }}>
                     <input
                       type="checkbox"
                       id="make-public-checkbox"
-                      style={{ width: 'auto', marginRight: '0.25rem' }}
+                      className="form-checkbox"
                       checked={!!deck.public_slug}
                       onChange={async (e) => {
                         const checked = e.target.checked;
@@ -1054,10 +1088,9 @@ export default function DeckEditor() {
                           newSlug = Math.random().toString(36).substring(2, 11);
                           trackEvent('share_link_created');
                         }
-                        
-                        // Optimistic update
+
                         setDeck(prev => ({ ...prev, public_slug: newSlug }));
-                        
+
                         try {
                           const { error: updateError } = await supabase
                             .from('decks')
@@ -1071,35 +1104,41 @@ export default function DeckEditor() {
                         }
                       }}
                     />
-                    <label htmlFor="make-public-checkbox" style={{ cursor: 'pointer' }}>Make Presentation Public</label>
+                    <label htmlFor="make-public-checkbox" style={{ cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
+                      Make Presentation Public
+                    </label>
                   </div>
                   {deck.public_slug && (
                     <div style={{
-                      marginTop: '0.75rem',
-                      padding: '0.75rem',
-                      backgroundColor: 'var(--color-bg-secondary)',
-                      border: '1px solid var(--color-border)',
+                      marginTop: 'var(--space-3)',
+                      padding: 'var(--space-3)',
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border-subtle)',
                       borderRadius: 'var(--radius-md)',
                     }}>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
-                        Anyone with the link can view this presentation:
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 'var(--space-2)' }}>
+                        Anyone with the link can view:
                       </p>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                         <input
                           type="text"
                           readOnly
                           className="form-input"
-                          style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem', flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+                          style={{ fontSize: 'var(--text-xs)', padding: '0.35rem 0.6rem', flex: 1 }}
                           value={window.location.origin + '/d/' + deck.public_slug}
                         />
                         <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ whiteSpace: 'nowrap' }}
                           onClick={() => {
                             navigator.clipboard.writeText(window.location.origin + '/d/' + deck.public_slug);
                             alert('Link copied to clipboard!');
                           }}
                         >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
                           Copy
                         </button>
                       </div>
@@ -1108,15 +1147,25 @@ export default function DeckEditor() {
                 </div>
               </div>
 
-              <div className="editor-actions">
-                <button className="btn btn-danger" onClick={handleDeleteSlide} disabled={savingStatus === 'saving'}>
+              {/* Delete Slide */}
+              <div style={{ marginTop: 'auto', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-subtle)' }}>
+                <button className="btn btn-danger" onClick={handleDeleteSlide} disabled={savingStatus === 'saving'} style={{ width: '100%' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
                   Delete Slide
                 </button>
               </div>
             </>
           ) : (
-            <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '2rem' }}>
-              Select or add a slide to start editing details.
+            <div style={{ color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 'var(--space-12)' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" style={{ margin: '0 auto var(--space-4)', opacity: 0.4 }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <p>Select or add a slide to start editing.</p>
             </div>
           )}
         </div>
