@@ -1,11 +1,112 @@
 // Deploy trigger: 2026-06-11
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-import { YoutubeTranscript } from 'https://esm.sh/youtube-transcript@1.2.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&lsquo;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&ndash;/g, '-')
+    .replace(/&mdash;/g, '—')
+    .replace(/&#(\d+);/g, (_match, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function extractYtInitialPlayerResponse(html: string): any {
+  const patterns = [
+    /ytInitialPlayerResponse\s*=\s*({.+?});/s,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/s,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*\n/s,
+    /["']ytInitialPlayerResponse["']\s*:\s*({.+?})\s*(?:,|})/s
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) {
+      try {
+        return JSON.parse(match[1]);
+      } catch (_e) {
+        // ignore
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchYoutubeTranscript(videoId: string): Promise<string> {
+  const url = `https://www.youtube.com/watch?v=${videoId}`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      "Accept-Language": "en-US,en;q=0.9"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch YouTube page: HTTP ${response.status}`);
+  }
+  const html = await response.text();
+  const playerResponse = extractYtInitialPlayerResponse(html);
+  if (!playerResponse) {
+    throw new Error("Could not parse ytInitialPlayerResponse. The video might be private, age-restricted, or YouTube changed its page format.");
+  }
+
+  const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  if (!tracks || !Array.isArray(tracks) || tracks.length === 0) {
+    throw new Error("No captions/subtitles available for this video");
+  }
+
+  let track = tracks.find((t: any) => t.languageCode === 'en' && t.kind !== 'asr');
+  if (!track) {
+    track = tracks.find((t: any) => t.languageCode === 'en');
+  }
+  if (!track) {
+    track = tracks[0];
+  }
+
+  const baseUrl = track.baseUrl;
+  if (!baseUrl) {
+    throw new Error("Caption track has no base URL");
+  }
+
+  const xmlRes = await fetch(baseUrl);
+  if (!xmlRes.ok) {
+    throw new Error(`Failed to fetch XML captions: HTTP ${xmlRes.status}`);
+  }
+  const xmlText = await xmlRes.text();
+
+  const textRegex = /<text[^>]*>([\s\S]*?)<\/text>/gi;
+  const segments: string[] = [];
+  let match;
+  while ((match = textRegex.exec(xmlText)) !== null) {
+    segments.push(match[1]);
+  }
+
+  if (segments.length === 0) {
+    throw new Error("No text segments found in caption track XML");
+  }
+
+  return segments
+    .map(seg => decodeHtmlEntities(seg))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 serve(async (req) => {
@@ -66,8 +167,7 @@ serve(async (req) => {
       const videoId = videoIdMatch[1]
       
       try {
-        const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
-        transcript = transcriptItems.map((item: any) => item.text).join(" ");
+        transcript = await fetchYoutubeTranscript(videoId);
       } catch (err: any) {
         console.error("YoutubeTranscript Error:", err);
         throw new Error("No captions found for this video: " + err.message);
