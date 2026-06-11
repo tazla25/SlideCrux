@@ -2,7 +2,7 @@
 
 ## Last Session
 - **Date:** June 11, 2026
-- **Status:** Resolved YouTube transcript fetching issue and brand kits creation error. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML page for videos without captions, forcing a validation check (`rawText.indexOf("## Transcript") === -1`). Fixed a column mismatch error in `brand_kits` table by renaming `color_primary`, `color_secondary`, and `color_accent` to match the React app fields (`primary_color`, `secondary_color`, `accent_color`) via a new migration `004_rename_brand_kit_colors.sql`. Added `generate-deck` to GitHub Actions deployment workflow.
+- **Status:** Resolved YouTube transcript fetching issue, brand kits creation error, and edge function status update failure. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML page for videos without captions, forcing a validation check (`rawText.indexOf("## Transcript") === -1`). Fixed a column mismatch error in `brand_kits` table via a new migration `004_rename_brand_kit_colors.sql`. Fixed a database trigger error in `fetch-transcript` function (Direct updates of status not allowed) by switching the status updates to use `supabaseAdmin` (Service Role client). Added `generate-deck` to GitHub Actions deployment workflow.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
