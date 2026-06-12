@@ -1,8 +1,8 @@
 # SlideCrux Project Memory
 
 ## Last Session
-- **Date:** June 11, 2026
-- **Status:** Resolved YouTube transcript fetching issue, brand kits creation error, and edge function status update failure. Fixed a bug where `youtube-transcript.ai` returned HTTP 200 with a dummy HTML page for videos without captions, forcing a validation check (`rawText.indexOf("## Transcript") === -1`). Fixed a column mismatch error in `brand_kits` table via a new migration `004_rename_brand_kit_colors.sql`. Fixed a database trigger error in `fetch-transcript` function (Direct updates of status not allowed) by switching the status updates to use `supabaseAdmin` (Service Role client). Added `generate-deck` to GitHub Actions deployment workflow.
+- **Date:** June 12, 2026
+- **Status:** Complete implementation of the missing Audio/Video upload tab & Whisper transcription flow in `NewDeck.jsx` (adding drag-and-drop dropzone UI, storage upload flow, and `transcribe-upload` edge function invocation). Created database migration `005_storage_uploads_bucket.sql` to initialize `uploads` storage bucket with correct RLS policies. Created database migration `006_fix_subscriptions_schema.sql` to fix subscriptions table schema mismatch for the webhook. Updated GitHub Actions workflow `.github/workflows/deploy.yml` to automatically deploy all 4 Edge Functions. Resolved committed merge conflict markers in `fetch-transcript` Edge Function. All changes successfully pushed to GitHub.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
@@ -38,6 +38,7 @@
 - Tech Stack: Vite + React 19, Supabase (PostgreSQL + Edge Functions), Vercel.
 
 ## Next Steps
-- The MVP is fully built, polished, and documented.
-- Deploy the frontend to Vercel via GitHub, following `08-Deployment_Guide.md`.
-- List the project on Acquire.com using the newly generated operational and cost documents.
+- Suman to monitor the GitHub Actions run for Edge Functions deployment.
+- Import the SlideCrux repository into Vercel Dashboard for live production hosting.
+- Configure Lemon Squeezy webhook URL pointing to the deployed `lemon-webhook` Edge Function.
+- Start marketing / Launch checklist prep or proceed to next product **ChangelogPilot**.
