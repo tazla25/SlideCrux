@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
 // Use node crypto polyfill in Deno if needed, but since it's an edge function:
-import { hmac } from "https://deno.land/x/crypto@v0.1.0/hmac.ts"
+import { createHmac } from "node:crypto"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,7 +28,7 @@ serve(async (req) => {
     const bodyText = await req.text()
     
     // Verify signature
-    const hmacVal = hmac('sha256', secret, bodyText, 'utf8', 'hex')
+    const hmacVal = createHmac('sha256', secret).update(bodyText).digest('hex')
     if (signature !== hmacVal) {
       return new Response('Invalid signature', { status: 401 })
     }
@@ -85,7 +85,7 @@ serve(async (req) => {
       // Update profile plan
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({ plan })
+        .update({ plan, lemon_customer_id: data.attributes.customer_id?.toString() || null })
         .eq('id', userId)
 
       if (profileError) throw profileError
