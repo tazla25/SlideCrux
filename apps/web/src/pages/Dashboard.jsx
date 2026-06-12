@@ -155,27 +155,27 @@ export default function Dashboard({ session }) {
 
   if (loading) {
     return (
-      <div className="page-container">
-        <header className="dashboard-header">
+      <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in">
+        <header className="flex justify-between items-center mb-10">
           <div>
-            <div className="skeleton" style={{ width: 280, height: 36, marginBottom: 8 }} />
-            <div className="skeleton" style={{ width: 160, height: 18 }} />
+            <div className="bg-white_5 rounded-lg" style={{ width: 280, height: 36, marginBottom: 8 }} />
+            <div className="bg-white_5 rounded-lg" style={{ width: 160, height: 18 }} />
           </div>
-          <div className="skeleton" style={{ width: 130, height: 40, borderRadius: 'var(--radius-md)' }} />
+          <div className="bg-white_5 rounded-xl" style={{ width: 130, height: 40 }} />
         </header>
 
-        <div className="stats-bar">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="stat-card">
-              <div className="skeleton" style={{ width: 50, height: 36 }} />
-              <div className="skeleton" style={{ width: 80, height: 14 }} />
+            <div key={i} className="glass-panel p-6">
+              <div className="bg-white_5 rounded" style={{ width: 50, height: 36, marginBottom: 8 }} />
+              <div className="bg-white_5 rounded" style={{ width: 80, height: 14 }} />
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="skeleton" style={{ height: 76, borderRadius: 'var(--radius-lg)' }} />
+            <div key={i} className="glass-panel p-6 h-32" />
           ))}
         </div>
       </div>
@@ -183,16 +183,16 @@ export default function Dashboard({ session }) {
   }
 
   return (
-    <div className="page-container">
+    <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in">
       {/* Header */}
-      <header className="dashboard-header">
+      <header className="flex justify-between items-center mb-10">
         <div>
-          <h1>
+          <h1 className="text-3xl font-semibold text-white tracking-tight mb-2">
             Welcome back, {fullName.split(' ')[0]}!
           </h1>
-          <p>Your SlideCrux workspace</p>
+          <p className="text-gray-400">Your SlideCrux workspace</p>
         </div>
-        <Link to="/new-deck" className="btn btn-primary">
+        <Link to="/new-deck" className="btn-primary flex items-center gap-3">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -202,34 +202,45 @@ export default function Dashboard({ session }) {
       </header>
 
       {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-card">
-          <span className="stat-value">{totalDecks}</span>
-          <span className="stat-label">Total Decks</span>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="glass-panel p-6 flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-50"></div>
+          <span className="text-3xl font-bold text-white mb-2">{totalDecks}</span>
+          <span className="text-sm text-gray-400 uppercase tracking-wider">Total Decks</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value" style={{ color: 'var(--success)' }}>{readyDecks}</span>
-          <span className="stat-label">Ready</span>
+        <div className="glass-panel p-6 flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-50"></div>
+          <span className="text-3xl font-bold text-blue-400 mb-2">{readyDecks}</span>
+          <span className="text-sm text-gray-400 uppercase tracking-wider">Ready</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{decksThisMonth}<span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-lg)' }}>/{planLimit}</span></span>
-          <span className="stat-label">This Month</span>
+        <div className="glass-panel p-6 flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-50"></div>
+          <span className="text-3xl font-bold text-white mb-2">
+            {decksThisMonth}<span className="text-gray-400 text-xl ml-2">/{planLimit}</span>
+          </span>
+          <span className="text-sm text-gray-400 uppercase tracking-wider">This Month</span>
         </div>
-        <div className="stat-card">
-          <span>
-            <span className={`plan-badge ${plan === 'pro' ? 'plan-badge-pro' : plan === 'team' ? 'plan-badge-team' : 'plan-badge-free'}`}>
+        <div className="glass-panel p-6 flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-50"></div>
+          <span className="mb-2">
+            <span className="bg-blue-600 text-white px-3 py-1 rounded-xl text-sm font-medium inline-block">
               {plan.charAt(0).toUpperCase() + plan.slice(1)}
             </span>
           </span>
-          <span className="stat-label">Plan</span>
+          <span className="text-sm text-gray-400 uppercase tracking-wider">Plan</span>
         </div>
+      </div>
+
+      {/* Deck List Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Recent Decks</h2>
       </div>
 
       {/* Deck List */}
       {decks.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="glass-panel p-12 flex flex-col items-center justify-center text-center">
+          <div className="text-gray-400 mb-4">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" />
               <path d="M8 21h8" />
               <path d="M12 17v4" />
@@ -237,11 +248,11 @@ export default function Dashboard({ session }) {
               <path d="M7 11h6" />
             </svg>
           </div>
-          <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 700 }}>No decks yet</h3>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 360 }}>
+          <h3 className="text-xl font-bold text-white mb-2">No decks yet</h3>
+          <p className="text-gray-400 max-w-md mx-auto mb-6">
             Paste a YouTube or Loom URL and let AI create a stunning presentation for you in seconds.
           </p>
-          <Link to="/new-deck" className="btn btn-primary">
+          <Link to="/new-deck" className="btn-primary flex items-center justify-center gap-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -250,7 +261,7 @@ export default function Dashboard({ session }) {
           </Link>
         </div>
       ) : (
-        <div className="decks-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {decks.map(deck => {
             const status = STATUS_CONFIG[deck.status] || STATUS_CONFIG.pending
             const icon = SOURCE_ICONS[deck.source_type] || SOURCE_ICONS.paste
@@ -259,78 +270,82 @@ export default function Dashboard({ session }) {
             return (
               <div
                 key={deck.id}
-                className="deck-card"
+                className="glass-panel p-6 group hover:-translate-y-1 transition-transform duration-300 cursor-pointer relative overflow-hidden flex flex-col"
                 onClick={() => isReady ? navigate(`/deck/${deck.id}`) : null}
                 style={{ cursor: isReady ? 'pointer' : 'default' }}
               >
-                <div className="deck-card-source" style={{ color: status.color }}>
-                  {icon}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 bg-white_5 rounded-lg" style={{ color: status.color }}>
+                    {icon}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isReady && (
+                      <Link
+                        to={`/deck/${deck.id}`}
+                        className="text-gray-400 hover:text-white transition-colors"
+                        onClick={e => e.stopPropagation()}
+                        title="Edit"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </Link>
+                    )}
+                    {deck.public_slug && (
+                      <a
+                        href={`/d/${deck.public_slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-white transition-colors"
+                        onClick={e => e.stopPropagation()}
+                        title="View public link"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+                    )}
+                    <button
+                      className="text-gray-400 hover:text-error transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteModal(deck)
+                      }}
+                      title="Delete deck"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="deck-card-body">
-                  <div className="deck-card-title">
-                    {deck.title || 'Untitled Deck'}
-                  </div>
-                  <div className="deck-card-meta">
-                    <span className="status-badge" style={{ background: status.bg, color: status.color }}>
-                      <span className={`status-dot ${status.className}`} />
+                <h3 className="text-lg font-medium text-white mb-4" style={{ minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  {deck.title || 'Untitled Deck'}
+                </h3>
+                
+                <div className="mt-auto flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 rounded text-xs font-medium" style={{ background: status.bg, color: status.color }}>
                       {status.label}
                     </span>
-                    {deck.slide_count > 0 && (
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)', fontWeight: 500 }}>
-                        {deck.slide_count} slides
-                      </span>
-                    )}
-                    <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>
-                      {timeAgo(deck.created_at)}
-                    </span>
                     {deck.status === 'failed' && deck.error && (
-                      <span style={{ color: 'var(--error)', fontSize: 'var(--text-xs)' }}>
+                      <span className="text-xs text-error overflow-hidden" style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={deck.error}>
                         {deck.error}
                       </span>
                     )}
                   </div>
-                </div>
-
-                <div className="deck-card-actions" onClick={e => e.stopPropagation()}>
-                  {isReady && (
-                    <Link
-                      to={`/deck/${deck.id}`}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                      Edit
-                    </Link>
-                  )}
-                  {deck.public_slug && (
-                    <a
-                      href={`/d/${deck.public_slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-ghost btn-icon-sm"
-                      title="View public link"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                  )}
-                  <button
-                    className="btn btn-ghost btn-icon-sm"
-                    onClick={() => setDeleteModal(deck)}
-                    title="Delete deck"
-                    style={{ color: 'var(--error)' }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
+                  
+                  <div className="flex justify-between items-center text-sm text-gray-400 border-t border-white_10 pt-3">
+                    <span>{deck.slide_count > 0 ? `${deck.slide_count} Slides` : 'No slides'}</span>
+                    <span>{timeAgo(deck.created_at)}</span>
+                  </div>
                 </div>
               </div>
             )
@@ -339,83 +354,81 @@ export default function Dashboard({ session }) {
       )}
 
       {/* Quick Links */}
-      <div className="quick-links">
-        <Link to="/brand-kits" className="quick-link-card">
-          <div className="quick-link-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="13.5" cy="6.5" r="2.5" />
-              <path d="M13.5 9.5c-2.5 0-4.5 1.5-4.5 3.5v2h9v-2c0-2-2-3.5-4.5-3.5z" />
-              <path d="M2 21l2-7h4l2 7" />
-              <path d="M5 14v-2a2 2 0 0 1 2-2" />
-            </svg>
-          </div>
-          <div>
-            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Brand Kits</h4>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Custom colors, logos & fonts</p>
-          </div>
-        </Link>
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold text-white tracking-tight mb-6">Quick Links</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link to="/brand-kits" className="glass-panel p-6 flex items-start gap-4 hover:-translate-y-1 transition-transform duration-300 group relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="p-3 bg-white_5 rounded-lg text-blue-400">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="13.5" cy="6.5" r="2.5" />
+                <path d="M13.5 9.5c-2.5 0-4.5 1.5-4.5 3.5v2h9v-2c0-2-2-3.5-4.5-3.5z" />
+                <path d="M2 21l2-7h4l2 7" />
+                <path d="M5 14v-2a2 2 0 0 1 2-2" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-1">Brand Kits</h4>
+              <p className="text-sm text-gray-400">Custom colors, logos & fonts</p>
+            </div>
+          </Link>
 
-        <Link to="/pricing" className="quick-link-card">
-          <div className="quick-link-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          </div>
-          <div>
-            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Upgrade Plan</h4>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
-              {plan === 'free' ? 'Unlock more decks & exports' : 'Manage subscription'}
-            </p>
-          </div>
-        </Link>
+          <Link to="/pricing" className="glass-panel p-6 flex items-start gap-4 hover:-translate-y-1 transition-transform duration-300 group relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="p-3 bg-white_5 rounded-lg text-blue-400">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-1">Upgrade Plan</h4>
+              <p className="text-sm text-gray-400">
+                {plan === 'free' ? 'Unlock more decks & exports' : 'Manage subscription'}
+              </p>
+            </div>
+          </Link>
 
-        <Link to="/settings" className="quick-link-card">
-          <div className="quick-link-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </div>
-          <div>
-            <h4 style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 2 }}>Settings</h4>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Account & preferences</p>
-          </div>
-        </Link>
+          <Link to="/settings" className="glass-panel p-6 flex items-start gap-4 hover:-translate-y-1 transition-transform duration-300 group relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="p-3 bg-white_5 rounded-lg text-blue-400">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-1">Settings</h4>
+              <p className="text-sm text-gray-400">Account & preferences</p>
+            </div>
+          </Link>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {deleteModal && (
-        <div className="modal-overlay" onClick={() => !deleting && setDeleteModal(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              background: 'var(--error-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 'var(--space-4)'
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2" strokeLinecap="round">
+        <div className="fixed top-0 left-0 w-full h-screen z-50 flex items-center justify-center bg-black_60" style={{ backdropFilter: 'blur(4px)' }} onClick={() => !deleting && setDeleteModal(null)}>
+          <div className="glass-panel p-8 max-w-md w-full mx-4 relative" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-6" style={{ background: 'var(--error-bg, rgba(239, 68, 68, 0.15))' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error, #ef4444)" strokeWidth="2" strokeLinecap="round">
                 <polyline points="3 6 5 6 21 6" />
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
             </div>
-            <h3>Delete Deck?</h3>
-            <p>
-              Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>"{deleteModal.title || 'Untitled Deck'}"</strong>? This will permanently remove all slides and cannot be undone.
+            <h3 className="text-xl font-bold text-white mb-3">Delete Deck?</h3>
+            <p className="text-gray-400 mb-8">
+              Are you sure you want to delete <strong className="text-white">"{deleteModal.title || 'Untitled Deck'}"</strong>? This will permanently remove all slides and cannot be undone.
             </p>
-            <div className="modal-actions">
+            <div className="flex justify-end gap-4">
               <button
-                className="btn btn-secondary"
+                className="px-4 py-2 rounded-xl text-white bg-white_5 hover:bg-white_10 transition-colors"
                 onClick={() => setDeleteModal(null)}
                 disabled={deleting}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-danger"
+                className="px-4 py-2 rounded-xl text-white flex items-center gap-2 transition-colors"
+                style={{ backgroundColor: 'var(--error, #ef4444)' }}
                 onClick={handleDelete}
                 disabled={deleting}
               >

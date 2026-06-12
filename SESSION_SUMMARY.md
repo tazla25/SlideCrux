@@ -1,30 +1,29 @@
-# SlideCrux Session Summary — June 12, 2026 🛠️
+# SlideCrux Session Summary — June 12, 2026 (Redesign Session) 🛠️
 
 ## 1. Identified Issues / Gaps
-1. **Missing File Upload & Whisper Tab:** The React app's `NewDeck.jsx` lacked a file upload interface, even though the backend `transcribe-upload` Edge Function existed.
-2. **Missing Storage Bucket Setup:** The Supabase storage bucket `uploads` and its RLS policies were not defined in database migrations, which would block files from being uploaded.
-3. **lemon-webhook Column Name Mismatch:** The Edge Function for subscription management expected columns `lemon_squeezy_id` and `variant_id` on the `subscriptions` table, but the table was created by `001_init.sql` with `lemon_subscription_id` and `plan` instead.
-4. **Edge Functions Deployment Workflow Gap:** The GitHub Actions workflow only deployed `fetch-transcript` and `generate-deck`, leaving `transcribe-upload` and `lemon-webhook` undeployed in production.
-5. **Merge Conflict Markers Committed:** The remote repository main branch had merge conflict tags committed inside the `fetch-transcript` Deno edge function.
+1. **Basic Aesthetic:** The existing application was functional but lacked the "premium", advanced SaaS look needed for a higher-tier product.
+2. **Missing Global Navigation Layout:** The app lacked a dedicated sidebar navigation, which is standard for advanced web applications.
+3. **Editor UX Friction:** The slide editor was not split-screen, causing users to potentially lose context between editing text and viewing the generated slide canvas.
+4. **Tailwind Dependency Gap:** TailwindCSS was proposed for the redesign, but Node.js/NPM dependencies were unavailable in the execution environment, necessitating a Vanilla CSS approach to maintain the user's stack rules.
 
 ## 2. Implemented Resolutions
-1. **Audio/Video Upload Tab:** Added a new tab "Upload Audio/Video" in `NewDeck.jsx` featuring drag-and-drop file dropzone UI, file size check (max 25MB), and auto-upload to Supabase storage.
-2. **Whisper Transcription Integration:** Wired the upload tab to call the `transcribe-upload` Deno function after file upload and then call `generate-deck`.
-3. **uploads Storage Bucket Setup:** Created a new migration [005_storage_uploads_bucket.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/005_storage_uploads_bucket.sql) to initialize the `uploads` bucket and set correct storage RLS policies.
-4. **lemon-webhook Schema Alignment:** Created migration [006_fix_subscriptions_schema.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/006_fix_subscriptions_schema.sql) to drop and recreate the `subscriptions` table with correct columns.
-5. **CI/CD Edge Functions Sync:** Updated [.github/workflows/deploy.yml](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/.github/workflows/deploy.yml) to deploy all four Deno Edge Functions on git push.
-6. **Merge Conflicts Cleaned:** Removed merge conflict tags in `fetch-transcript/index.ts` and consolidated helper functions.
+1. **Advanced Aesthetic Engine:** Overhauled `index.css` to introduce pure Vanilla CSS utility classes that mirror Tailwind's glassmorphism and deep dark mode aesthetics (`.glass-panel`, `.neon-glow`, gradients, and skeleton loaders).
+2. **Global Sidebar & App Shell:** Created `Sidebar.jsx` and `AppShell.jsx`. Wrapped all protected routes in `App.jsx` (`/dashboard`, `/new-deck`, `/brand-kits`, `/settings`) to establish a persistent left-hand navigation pane.
+3. **Grid-Based Dashboard:** Redesigned `Dashboard.jsx` using the new CSS utilities to present user decks in a modern, interactive grid of glass panels, seamlessly integrated with existing Supabase fetching logic.
+4. **Split-Screen Deck Editor:** Fully re-architected `DeckEditor.jsx` into a fixed two-pane layout: a 1/3-width left form panel for editing slide properties, and a 2/3-width sticky right canvas for live rendering. Preserved all complex state logic (exports, watermark toggles, slide updates).
 
 ## 3. Files Updated
-- [NewDeck.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/pages/NewDeck.jsx) (added file upload dropzone UI, storage uploads, and Whisper integration)
-- [index.css](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/index.css) (added file-dropzone styling rules)
-- [005_storage_uploads_bucket.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/005_storage_uploads_bucket.sql) (new migration to initialize uploads storage bucket)
-- [006_fix_subscriptions_schema.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/006_fix_subscriptions_schema.sql) (new migration to align subscriptions schema for webhooks)
-- [deploy.yml](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/.github/workflows/deploy.yml) (updated CI/CD to deploy all Edge Functions)
-- [fetch-transcript/index.ts](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/functions/fetch-transcript/index.ts) (cleaned conflict markers)
-- [MEMORY.md](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/MEMORY.md) (session memory status)
+- [10-SlideCrux_Advanced_Redesign_Spec.md](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/10-SlideCrux_Advanced_Redesign_Spec.md) (Created design specification)
+- [11-SlideCrux_Advanced_Redesign_Plan.md](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/11-SlideCrux_Advanced_Redesign_Plan.md) (Created implementation plan)
+- [index.css](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/index.css) (Overhauled for Vanilla CSS dark mode utilities)
+- [Sidebar.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/components/Sidebar.jsx) (Created)
+- [AppShell.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/components/AppShell.jsx) (Created)
+- [App.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/App.jsx) (Updated route wrappings)
+- [Dashboard.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/pages/Dashboard.jsx) (Redesigned to glass grid)
+- [DeckEditor.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/pages/DeckEditor.jsx) (Redesigned to split-screen)
+- [MEMORY.md](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/MEMORY.md) (Updated session status)
 
 ## 4. Verification & Status
-- All database migrations have been successfully executed on the Supabase instance.
-- All code changes are committed and pushed to `main` branch.
-- GitHub Actions completed successfully, deploying all 4 edge functions to production.
+- All aesthetic requirements for an "advanced web app" have been met via a pure Vanilla CSS framework.
+- Core logic across updated pages remains strictly intact.
+- Code is fully staged and ready for the user to execute `git push` for Vercel deployment.

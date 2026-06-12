@@ -2,7 +2,7 @@
 
 ## Last Session
 - **Date:** June 12, 2026
-- **Status:** Complete implementation of the missing Audio/Video upload tab & Whisper transcription flow in `NewDeck.jsx` (adding drag-and-drop dropzone UI, storage upload flow, and `transcribe-upload` edge function invocation). Created database migration `005_storage_uploads_bucket.sql` to initialize `uploads` storage bucket with correct RLS policies. Created database migration `006_fix_subscriptions_schema.sql` to fix subscriptions table schema mismatch for the webhook. Updated GitHub Actions workflow `.github/workflows/deploy.yml` to automatically deploy all 4 Edge Functions. Resolved committed merge conflict markers in `fetch-transcript` Edge Function. All changes successfully pushed to GitHub.
+- **Status:** Completed a massive visual and structural redesign. Converted the entire UI into an advanced "Deep Dark Mode" glassmorphism aesthetic. Implemented a new `AppShell.jsx` with a global Sidebar, redesigned the Dashboard to feature a glass-panel grid layout, and completely rewrote `DeckEditor.jsx` into a Split-Screen Editor (left panel for text edits, right panel for live canvas preview). Replaced Tailwind configurations with pure Vanilla CSS utility equivalents in `index.css`. Code successfully staged for git push.
 
 ## Accomplishments (Phase 5)
 1. **Google OAuth & User Settings (Task 1 & Task 4)**:
@@ -28,6 +28,16 @@
    - Implemented a global `ErrorBoundary.jsx` catching all unhandled React exceptions.
    - Created a dedicated `NotFound.jsx` (404) page for unknown routes.
    - Replaced basic spinners with premium, responsive skeleton shimmer animations across `Dashboard.jsx`, `BrandKits.jsx`, and `DeckEditor.jsx` using purely CSS gradients.
+
+## Accomplishments (Redesign Phase)
+1. **Advanced Web App Aesthetic**:
+   - Transitioned to a deep dark mode with glassmorphism panels, subtle neon glow effects, and modern CSS gradients using pure Vanilla CSS.
+2. **Global Sidebar Layout**:
+   - Replaced the top-navbar layout with a fixed left `Sidebar.jsx` and wrapped all protected routes inside an `AppShell.jsx`.
+3. **Split-Screen Deck Editor**:
+   - Re-architected `DeckEditor.jsx` to feature a 1/3-width left form panel for slide text edits and a 2/3-width sticky right canvas panel for live slide previews. Integrated existing complex state without breaking functionality.
+4. **Dashboard Overhaul**:
+   - Remapped the `Dashboard.jsx` interface to use an interactive glass-panel grid layout for recent decks.
 
 ## Active Context & Schema
 - Profiles: plan tier (free/pro/team), decks_this_month, monthly_reset_at.

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import Navbar from './components/Navbar'
+import AppShell from './components/AppShell'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import VerifyEmail from './pages/VerifyEmail'
@@ -81,7 +82,9 @@ function App() {
         
         <Route path="/dashboard" element={
           <ProtectedRoute session={session}>
-            <Dashboard session={session} />
+            <AppShell>
+              <Dashboard session={session} />
+            </AppShell>
           </ProtectedRoute>
         } />
 
@@ -93,7 +96,9 @@ function App() {
         
         <Route path="/new-deck" element={
           <ProtectedRoute session={session}>
-            <NewDeck />
+            <AppShell>
+              <NewDeck />
+            </AppShell>
           </ProtectedRoute>
         } />
 
@@ -105,7 +110,9 @@ function App() {
 
         <Route path="/brand-kits" element={
           <ProtectedRoute session={session}>
-            <BrandKits />
+            <AppShell>
+              <BrandKits />
+            </AppShell>
           </ProtectedRoute>
         } />
 
@@ -118,7 +125,9 @@ function App() {
         
         <Route path="/settings" element={
           <ProtectedRoute session={session}>
-            <Settings session={session} />
+            <AppShell>
+              <Settings session={session} />
+            </AppShell>
           </ProtectedRoute>
         } />
 
