@@ -592,7 +592,7 @@ export default function DeckEditor() {
   }
 
   return (
-    <div className="flex h-calc-100vh-4rem -m-8 overflow-hidden text-white">
+    <div className="flex h-full w-full overflow-hidden text-white">
       {/* Export overlay */}
       {exportingStatus && (
         <div className="processing-overlay" style={{ position: 'fixed', zIndex: 'var(--z-modal)' }}>
