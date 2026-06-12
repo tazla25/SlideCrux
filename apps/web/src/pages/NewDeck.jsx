@@ -158,6 +158,7 @@ function NewDeck() {
       (async () => {
         try {
           if (activeTab === 'url') {
+            if (isMounted.current) setDeckStatus('transcribing');
             const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('fetch-transcript', {
               body: { deck_id: newDeckId }
             })
@@ -171,6 +172,7 @@ function NewDeck() {
             }
           }
 
+          if (isMounted.current) setDeckStatus('generating');
           const { data, error } = await supabase.functions.invoke('generate-deck', {
             body: { deck_id: newDeckId }
           })
