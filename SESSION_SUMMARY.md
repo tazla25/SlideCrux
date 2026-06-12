@@ -1,37 +1,30 @@
-# SlideCrux Session Summary — June 11, 2026 🛠️
+# SlideCrux Session Summary — June 12, 2026 🛠️
 
-## 1. Identified Issues
-1. **HTML Transcript Fallback Failure:** When requesting a transcript for a video without captions, `youtube-transcript.ai` returns HTTP 200 with an HTML error page, which was saved as transcript.
-2. **AI Model Update:** Suman wanted to change the default LLM from `gpt-4o-mini` to `nvidia/nemotron-3-ultra-550b-a55b:free` (OpenRouter).
-3. **Mobile Editor Hidden:** On screens ≤ 768px, the slide editor pane (`.editor-right-pane`) was hidden (`display: none`) even when switching to the 'Edit' tab, because the JSX did not apply the `.active` class to it.
-4. **Brand Kits Column Name Mismatch:** When creating a brand kit, it failed with the error `Could not find the 'accent_color' column of 'brand_kits' in the schema cache` because the database schema in `001_init.sql` had `color_primary`, `color_secondary`, and `color_accent`, while the frontend code uses `primary_color`, `secondary_color`, and `accent_color`.
-5. **Database Trigger RLS Error (New):** The `fetch-transcript` Edge Function was failing silently/with 400 when updating the deck's status to `transcribing` and `pending`, because it was using `supabaseClient` (which is authenticated with the user's token). The database has a security trigger `check_deck_client_updates` that explicitly throws `Direct updates of status, slide_count, or error are not allowed` for client-initiated updates.
+## 1. Identified Issues / Gaps
+1. **Missing File Upload & Whisper Tab:** The React app's `NewDeck.jsx` lacked a file upload interface, even though the backend `transcribe-upload` Edge Function existed.
+2. **Missing Storage Bucket Setup:** The Supabase storage bucket `uploads` and its RLS policies were not defined in database migrations, which would block files from being uploaded.
+3. **lemon-webhook Column Name Mismatch:** The Edge Function for subscription management expected columns `lemon_squeezy_id` and `variant_id` on the `subscriptions` table, but the table was created by `001_init.sql` with `lemon_subscription_id` and `plan` instead.
+4. **Edge Functions Deployment Workflow Gap:** The GitHub Actions workflow only deployed `fetch-transcript` and `generate-deck`, leaving `transcribe-upload` and `lemon-webhook` undeployed in production.
+5. **Merge Conflict Markers Committed:** The remote repository main branch had merge conflict tags committed inside the `fetch-transcript` Deno edge function.
 
 ## 2. Implemented Resolutions
-1. **Validation Check:** Added `rawText.indexOf("## Transcript") === -1` validation check to throw an error and force fallback to native scraper.
-2. **Model Update & Zero-Cost:** Set OpenRouter model to `"nvidia/nemotron-3-ultra-550b-a55b:free"` in `openrouter.ts` and set input/output token cost constants to `0` in `generate-deck/index.ts`.
-3. **Mobile Edit Fix:**
-   - Modified `DeckEditor.jsx` to apply the `.active` class to `.editor-right-pane` when `mobileTab === 'edit'`.
-   - Updated `index.css` to override `#mobile-back-to-preview` to `display: inline-flex !important` inside the 768px media query block, allowing mobile users to easily return to preview mode.
-4. **Brand Kits Database Fix:**
-   - Updated `supabase/migrations/001_init.sql` to define columns directly as `primary_color`, `secondary_color`, and `accent_color`.
-   - Created a new migration file `supabase/migrations/004_rename_brand_kit_colors.sql` to rename color columns in existing databases to prevent schema errors.
-5. **Bypass RLS Client Constraints:**
-   - Reconfigured `fetch-transcript/index.ts` to initialize and use `supabaseAdmin` (Service Role client) to perform all status/transcript updates on the `decks` table, bypassing the database trigger and RLS constraints.
-6. **Auto-Deploy Sync:** Added `generate-deck` deploy command to `.github/workflows/deploy.yml`.
+1. **Audio/Video Upload Tab:** Added a new tab "Upload Audio/Video" in `NewDeck.jsx` featuring drag-and-drop file dropzone UI, file size check (max 25MB), and auto-upload to Supabase storage.
+2. **Whisper Transcription Integration:** Wired the upload tab to call the `transcribe-upload` Deno function after file upload and then call `generate-deck`.
+3. **uploads Storage Bucket Setup:** Created a new migration [005_storage_uploads_bucket.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/005_storage_uploads_bucket.sql) to initialize the `uploads` bucket and set correct storage RLS policies.
+4. **lemon-webhook Schema Alignment:** Created migration [006_fix_subscriptions_schema.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/006_fix_subscriptions_schema.sql) to drop and recreate the `subscriptions` table with correct columns.
+5. **CI/CD Edge Functions Sync:** Updated [.github/workflows/deploy.yml](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/.github/workflows/deploy.yml) to deploy all four Deno Edge Functions on git push.
+6. **Merge Conflicts Cleaned:** Removed merge conflict tags in `fetch-transcript/index.ts` and consolidated helper functions.
 
 ## 3. Files Updated
-- [fetch-transcript/index.ts](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/supabase/functions/fetch-transcript/index.ts) (added validation check, changed status updates to use `supabaseAdmin`)
-- [generate-deck/index.ts](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/supabase/functions/generate-deck/index.ts) (added validation check, model cost constants to 0)
-- [_shared/openrouter.ts](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/supabase/functions/_shared/openrouter.ts) (changed model to `nvidia/nemotron-3-ultra-550b-a55b:free` and cleaned markdown JSON wrappers)
-- [DeckEditor.jsx](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/apps/web/src/pages/DeckEditor.jsx) (applied `active` class to right pane on edit tab)
-- [index.css](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/apps/web/src/index.css) (added media query overrides for mobile back/done button)
-- [001_init.sql](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/supabase/migrations/001_init.sql) (renamed color columns)
-- [004_rename_brand_kit_colors.sql](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/supabase/migrations/004_rename_brand_kit_colors.sql) (new migration to rename existing brand kits columns)
-- [.github/workflows/deploy.yml](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/.github/workflows/deploy.yml) (added auto-deployment for `generate-deck`)
-- [MEMORY.md](file:///sdcard/documents/obsidian/My_SaaS_Project/SlideCrux/MEMORY.md) (session memory status)
+- [NewDeck.jsx](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/pages/NewDeck.jsx) (added file upload dropzone UI, storage uploads, and Whisper integration)
+- [index.css](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/apps/web/src/index.css) (added file-dropzone styling rules)
+- [005_storage_uploads_bucket.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/005_storage_uploads_bucket.sql) (new migration to initialize uploads storage bucket)
+- [006_fix_subscriptions_schema.sql](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/migrations/006_fix_subscriptions_schema.sql) (new migration to align subscriptions schema for webhooks)
+- [deploy.yml](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/.github/workflows/deploy.yml) (updated CI/CD to deploy all Edge Functions)
+- [fetch-transcript/index.ts](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/supabase/functions/fetch-transcript/index.ts) (cleaned conflict markers)
+- [MEMORY.md](file:///sdcard/documents/obsidian/my_saas_project/SlideCrux/MEMORY.md) (session memory status)
 
 ## 4. Verification & Status
-- All changes are committed locally. Suman needs to:
-  1. Run the SQL query inside `004_rename_brand_kit_colors.sql` in their Supabase SQL Editor (if they haven't done so already).
-  2. Run `git push origin main` to deploy these changes via GitHub Actions.
+- All database migrations have been successfully executed on the Supabase instance.
+- All code changes are committed and pushed to `main` branch.
+- GitHub Actions completed successfully, deploying all 4 edge functions to production.
