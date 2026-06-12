@@ -9,6 +9,9 @@ function NewDeck() {
   const [sourceUrl, setSourceUrl] = useState('')
   const [transcriptText, setTranscriptText] = useState('')
   const [detectedSourceType, setDetectedSourceType] = useState(null)
+  const [file, setFile] = useState(null)
+  const [dragging, setDragging] = useState(false)
+  const fileInputRef = useRef(null)
 
   const [brandKits, setBrandKits] = useState([])
   const [selectedBrandKitId, setSelectedBrandKitId] = useState('')
@@ -125,9 +128,9 @@ function NewDeck() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) throw new Error("Unauthorized: Please sign in again.")
 
-      const source_type = activeTab === 'url' ? detectedSourceType : 'paste'
-      const source_url = activeTab === 'url' ? sourceUrl.trim() : null
-      const transcript = activeTab === 'paste' ? transcriptText.trim() : null
+      let source_type = activeTab === 'url' ? detectedSourceType : (activeTab === 'upload' ? 'upload' : 'paste')
+      let source_url = activeTab === 'url' ? sourceUrl.trim() : null
+      let transcript = activeTab === 'paste' ? transcriptText.trim() : null
 
       if (activeTab === 'url' && !detectedSourceType) {
         throw new Error("Invalid URL: Must be a YouTube or Loom URL.")
@@ -137,11 +140,21 @@ function NewDeck() {
         throw new Error("Please paste a transcript.")
       }
 
+      if (activeTab === 'upload') {
+        if (!file) {
+          throw new Error("Please select an audio or video file to upload.")
+        }
+        if (file.size > 25 * 1024 * 1024) {
+          throw new Error("File too large. Maximum file size is 25MB.")
+        }
+        source_url = 'pending-upload' // Temporary placeholder
+      }
+
       const { data: newDeck, error: insertError } = await supabase
         .from('decks')
         .insert({
           owner_id: user.id,
-          title: title.trim() || 'Untitled Deck',
+          title: title.trim() || (activeTab === 'upload' ? file.name.split('.')[0] : 'Untitled Deck'),
           source_type,
           source_url,
           transcript,
@@ -157,7 +170,37 @@ function NewDeck() {
 
       (async () => {
         try {
-          if (activeTab === 'url') {
+          if (activeTab === 'upload') {
+            if (isMounted.current) setDeckStatus('transcribing');
+            const fileExt = file.name.split('.').pop()
+            const filePath = `${user.id}/${newDeckId}/${Date.now()}.${fileExt}`
+            
+            const { error: uploadErr } = await supabase.storage
+              .from('uploads')
+              .upload(filePath, file)
+            
+            if (uploadErr) throw uploadErr
+
+            const { error: updateUrlErr } = await supabase
+              .from('decks')
+              .update({ source_url: `uploads/${filePath}` })
+              .eq('id', newDeckId)
+            
+            if (updateUrlErr) throw updateUrlErr
+
+            const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('transcribe-upload', {
+              body: { deck_id: newDeckId }
+            })
+
+            if (fetchErr) {
+              let errorMsg = fetchErr.message || "Failed to transcribe audio/video."
+              try {
+                const parsed = typeof fetchErr.context === 'string' ? JSON.parse(fetchErr.context) : fetchErr.context
+                if (parsed?.error) errorMsg = parsed.error
+              } catch (_) { }
+              throw new Error(errorMsg)
+            }
+          } else if (activeTab === 'url') {
             if (isMounted.current) setDeckStatus('transcribing');
             const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('fetch-transcript', {
               body: { deck_id: newDeckId }
@@ -233,10 +276,10 @@ function NewDeck() {
 
   // Processing overlay
   if (loading || deckStatus === 'failed') {
-    const steps = activeTab === 'url'
+    const steps = activeTab === 'url' || activeTab === 'upload'
       ? [
         { key: 'pending', label: 'Initialize generation pipeline', num: 1 },
-        { key: 'transcribing', label: 'Transcribe video content', num: 2 },
+        { key: 'transcribing', label: 'Transcribe content', num: 2 },
         { key: 'generating', label: 'Generate slides with AI', num: 3 },
         { key: 'ready', label: 'Ready', num: 4 },
       ]
@@ -270,7 +313,7 @@ function NewDeck() {
             {steps.map(step => {
               const isActive = deckStatus === step.key
               const isDone = step.key === 'pending' ||
-                (activeTab === 'url' && deckStatus !== 'pending' && step.key === 'transcribing' && (deckStatus === 'generating' || deckStatus === 'ready')) ||
+                ((activeTab === 'url' || activeTab === 'upload') && deckStatus !== 'pending' && step.key === 'transcribing' && (deckStatus === 'generating' || deckStatus === 'ready')) ||
                 (deckStatus === 'ready' && (step.key === 'generating' || step.key === 'transcribing'))
 
               return (
@@ -350,7 +393,11 @@ function NewDeck() {
       <div className="wizard-tabs">
         <button
           className={`wizard-tab ${activeTab === 'url' ? 'active' : ''}`}
-          onClick={() => setActiveTab('url')}
+          onClick={() => {
+            setActiveTab('url')
+            setError(null)
+          }}
+          type="button"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -359,8 +406,27 @@ function NewDeck() {
           Video URL
         </button>
         <button
+          className={`wizard-tab ${activeTab === 'upload' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('upload')
+            setError(null)
+          }}
+          type="button"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Upload Audio/Video
+        </button>
+        <button
           className={`wizard-tab ${activeTab === 'paste' ? 'active' : ''}`}
-          onClick={() => setActiveTab('paste')}
+          onClick={() => {
+            setActiveTab('paste')
+            setError(null)
+          }}
+          type="button"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
@@ -405,7 +471,7 @@ function NewDeck() {
         </div>
 
         {/* URL Input */}
-        {activeTab === 'url' ? (
+        {activeTab === 'url' && (
           <div className="form-group">
             <label className="form-label" htmlFor="video-url">
               Loom or YouTube URL
@@ -450,8 +516,71 @@ function NewDeck() {
               </div>
             )}
           </div>
-        ) : (
-          /* Transcript Input */
+        )}
+
+        {/* Upload Input */}
+        {activeTab === 'upload' && (
+          <div className="form-group">
+            <label className="form-label">
+              Upload Audio/Video File <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(Max 25MB)</span>
+            </label>
+            <div
+              className={`file-dropzone ${dragging ? 'dragging' : ''} ${file ? 'has-file' : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragging(true)
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragging(false)
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  setFile(e.dataTransfer.files[0])
+                  setError(null)
+                }
+              }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="audio/*,video/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setFile(e.target.files[0])
+                    setError(null)
+                  }
+                }}
+              />
+              <div className="dropzone-content">
+                <svg className="dropzone-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                {file ? (
+                  <div>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{file.name}</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontWeight: 500 }}>Drag and drop file here, or click to browse</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
+                      Supports MP3, MP4, M4A, WebM (up to 25MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Paste Input */}
+        {activeTab === 'paste' && (
           <div className="form-group">
             <label className="form-label" htmlFor="transcript-text">
               Raw Transcript Text
@@ -472,7 +601,7 @@ function NewDeck() {
         <button
           type="submit"
           className="btn btn-primary btn-lg"
-          disabled={activeTab === 'url' && !detectedSourceType}
+          disabled={(activeTab === 'url' && !detectedSourceType) || (activeTab === 'upload' && !file)}
           style={{ width: '100%', marginTop: 'var(--space-4)' }}
         >
           {activeTab === 'url' ? (
@@ -481,6 +610,13 @@ function NewDeck() {
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
               Generate Presentation
+            </>
+          ) : activeTab === 'upload' ? (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Upload and Generate
             </>
           ) : (
             <>

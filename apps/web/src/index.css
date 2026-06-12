@@ -1192,6 +1192,52 @@ body {
   animation: fadeInUp 0.3s ease-out;
 }
 
+/* File Dropzone styles */
+.file-dropzone {
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  margin-top: var(--space-1);
+}
+
+.file-dropzone:hover {
+  border-color: var(--brand-500);
+  background: var(--bg-tertiary);
+}
+
+.file-dropzone.dragging {
+  border-color: var(--brand-500);
+  background: rgba(59, 130, 246, 0.05);
+  transform: scale(1.02);
+}
+
+.file-dropzone.has-file {
+  border-style: solid;
+  border-color: var(--success);
+  background: rgba(52, 211, 153, 0.02);
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+}
+
+.dropzone-icon {
+  color: var(--brand-400);
+  transition: transform var(--transition-fast);
+}
+
+.file-dropzone:hover .dropzone-icon {
+  transform: translateY(-4px);
+}
+
 /* ========================================== */
 /* Deck Editor                                */
 /* ========================================== */
