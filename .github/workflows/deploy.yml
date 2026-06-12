@@ -23,5 +23,7 @@ jobs:
         run: |
           supabase functions deploy fetch-transcript --project-ref zwyesxdwjzbrmozeemvp
           supabase functions deploy generate-deck --project-ref zwyesxdwjzbrmozeemvp
+          supabase functions deploy transcribe-upload --project-ref zwyesxdwjzbrmozeemvp
+          supabase functions deploy lemon-webhook --project-ref zwyesxdwjzbrmozeemvp
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
