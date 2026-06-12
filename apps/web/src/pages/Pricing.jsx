@@ -77,6 +77,14 @@ export default function Pricing() {
       url.searchParams.append('checkout[custom][user_id]', user.id);
 
       if (window.LemonSqueezy) {
+        window.LemonSqueezy.Setup({
+          eventHandler: (event) => {
+            if (event.event === 'Checkout.Success') {
+               // Reload the page or manually update the UI after a successful checkout
+               window.location.reload();
+            }
+          }
+        });
         window.LemonSqueezy.Url.Open(url.toString());
       } else {
         window.open(url.toString(), '_blank');
