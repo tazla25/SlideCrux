@@ -28,7 +28,7 @@ You must return a JSON object that strictly adheres to this JSON Schema:
 ${JSON.stringify(jsonSchema, null, 2)}
 Ensure that you return ONLY a valid JSON object. Do not include markdown code block formatting (e.g., do not wrap the JSON in \`\`\`json ... \`\`\`).`;
 
-  const modelName = "nvidia/nemotron-3-ultra-550b-a55b:free";
+  const modelName = "openai/gpt-oss-120b:free";
   const isFreeModel = modelName.endsWith(":free");
 
   const requestBody = JSON.stringify({

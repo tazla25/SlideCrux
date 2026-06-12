@@ -34,7 +34,8 @@ function extractYtInitialPlayerResponse(html: string): any {
     /ytInitialPlayerResponse\s*=\s*({.+?});/s,
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*;/s,
     /ytInitialPlayerResponse\s*=\s*({.+?})\s*\n/s,
-    /["']ytInitialPlayerResponse["']\s*:\s*({.+?})\s*(?:,|})/s
+    /["']ytInitialPlayerResponse["']\s*:\s*({.+?})\s*(?:,|})/s,
+    /ytInitialPlayerResponse\s*=\s*({.+?})\s*;\s*(?:var\s+meta|<\/script|\n)/
   ];
   for (const pattern of patterns) {
     const match = html.match(pattern);
