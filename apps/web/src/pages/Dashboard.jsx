@@ -183,7 +183,7 @@ export default function Dashboard({ session }) {
   }
 
   return (
-    <div className="p-6 w-full space-y-8 animate-in">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <header className="flex justify-between items-center mb-10">
         <div>
